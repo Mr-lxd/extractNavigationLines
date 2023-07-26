@@ -35,13 +35,13 @@ public:
 	Mat MorphologicalOperation(Mat src, int kernel_size, int cycle_num);
 	Mat ClusterPointsDrawing(Mat& src, vector<Cluster>& points);
 	Mat applyPCA(Cluster& cluster, int num_components);
-	void processImageWithWindow(Mat& img, Cluster& points, int windowWidth, int windowHeight);
+	void processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, int windowWidth, int windowHeight);
 	vector<int> LFDC(vector<vector<double>>& X, vector<int>& YIni, int dim);
 	void averageCoordinates(Cluster& points);
 	Mat EightConnectivity(Mat& img, float cof);
 	vector<Cluster> Gaussian_Mixture_Model(Cluster& points, int numCluster, ml::EM::Types covarianceType);
 	vector<Cluster> firstClusterBaseOnDbscan(Cluster& points, float epsilon, int minPts);
-	vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster> cluster_points, int imgCenterX);
+	vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX);
 	vector<int> spectralClustering(Cluster& points, int k, double sigma);
 	void NormalizedExG(Mat srcimg, Mat& outimg);
 	vector<Cluster> Cluster_Nearest(Mat& featureimage);
@@ -53,6 +53,8 @@ public:
 	void SaveImg(String filename, Mat& img);
 
 private:
+
+	float k1, k2, k3, k4, k5, k6;		//分别为左中右聚类的最小和最大点对应的范围直线的斜率
 
 	float euclidean_distance(Point a, Point b);
 	int calculate_x(Point p, float k, int outimg_rows);

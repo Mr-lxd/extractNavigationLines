@@ -8,7 +8,7 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地(李宏伟)\\IMG_20230518_112255.jpg";
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_112212.jpg";
 	Mat inputImage = imread(filename);
 
 	//// 获取图像尺寸
@@ -49,7 +49,6 @@ int main()
 	*/
 	float cof = 0.7;
 	Mat ConnectImg = myImgPro.EightConnectivity(OtsuImg, cof);
-	Mat TempImg = ConnectImg.clone();
 
 
 	/*
@@ -67,7 +66,8 @@ int main()
 		目前看使用长条窗口去提取作物特征点比较好，能保留作物主要特征同时减少数据量
 	*/
 	CImgPro::Cluster points;
-	myImgPro.processImageWithWindow(TempImg, points, 32, 8);
+	Mat featureImg(ConnectImg.size(), CV_8UC1, Scalar(0));
+	myImgPro.processImageWithWindow(ConnectImg, featureImg, points, 4, 8);
 
 
 	/*
@@ -140,7 +140,7 @@ int main()
 		使用dbscan的思想
 	*/
 	int imgCenterX = inputImage.cols / 2;
-	vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(points, 150, 50);
+	vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(points, 110, 50);
 	vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, imgCenterX);
 	Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
 	Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
@@ -167,9 +167,9 @@ int main()
 
 
 
-	//namedWindow("cropped_Image", WINDOW_NORMAL);
-	//moveWindow("cropped_Image", 0, 0);		// 设置第一个窗口的位置
-	//imshow("cropped_Image", TempImg);
+	namedWindow("cropped_Image", WINDOW_NORMAL);
+	moveWindow("cropped_Image", 0, 0);		// 设置第一个窗口的位置
+	imshow("cropped_Image", featureImg);
 
 	//namedWindow("ExG_Image", WINDOW_NORMAL);
 	//moveWindow("ExG_Image", 0, 10);		
@@ -179,9 +179,9 @@ int main()
 	//moveWindow("MedianBlur_Img",500, 0);		
 	//imshow("MedianBlur_Img", MedianBlurImg);
 
-	//namedWindow("Susan_Img", WINDOW_NORMAL);
-	//moveWindow("Susan_Img", 0, 500);
-	//imshow("Susan_Img", SusanImg);
+	/*namedWindow("Susan_Img", WINDOW_NORMAL);
+	moveWindow("Susan_Img", 0, 500);
+	imshow("Susan_Img", TempImg);*/
 
 	namedWindow("OTSU_Img", WINDOW_NORMAL);
 	moveWindow("OTSU_Img", 500, 500);		 
