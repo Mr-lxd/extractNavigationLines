@@ -8,7 +8,7 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_112212.jpg";
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_112252.jpg";
 	Mat inputImage = imread(filename);
 
 	//// 获取图像尺寸
@@ -65,9 +65,9 @@ int main()
 	/*
 		目前看使用长条窗口去提取作物特征点比较好，能保留作物主要特征同时减少数据量
 	*/
-	CImgPro::Cluster points;
-	Mat featureImg(ConnectImg.size(), CV_8UC1, Scalar(0));
-	myImgPro.processImageWithWindow(ConnectImg, featureImg, points, 4, 8);
+	//CImgPro::Cluster points;
+	//Mat featureImg(ConnectImg.size(), CV_8UC1, Scalar(0));
+	//myImgPro.processImageWithWindow(ConnectImg, featureImg, points, 4, 8);
 
 
 	/*
@@ -136,14 +136,16 @@ int main()
 	//vector<CImgPro::Cluster> points = myImgPro.Cluster_for_Ransac(MorphImg, areaHeight, areaWidth, areaDegree, areaExtent);
 	//Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, points);
 
+
 	/*
 		使用dbscan的思想
 	*/
-	int imgCenterX = inputImage.cols / 2;
-	vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(points, 110, 50);
-	vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, imgCenterX);
-	Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
-	Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
+	//int imgCenterX = inputImage.cols / 2;
+	//vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(points, 110, 50);
+	//vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, imgCenterX, 0.65);
+	//Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
+	//Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
+
 
 	/*
 		目前来看，霍夫变换无法很好处理离群点和噪声
@@ -162,14 +164,14 @@ int main()
 	//Mat RansacImg = inputImage.clone();
 	//myImgPro.RANSAC(points, RANSAC_thresh, RansacImg);
 
-	////保存拟合图像
-	////myImgPro.SaveImg(filename, RansacImg);
+	//保存拟合图像
+	//myImgPro.SaveImg(filename, RansacImg);
 
 
 
-	namedWindow("cropped_Image", WINDOW_NORMAL);
-	moveWindow("cropped_Image", 0, 0);		// 设置第一个窗口的位置
-	imshow("cropped_Image", featureImg);
+	//namedWindow("cropped_Image", WINDOW_NORMAL);
+	//moveWindow("cropped_Image", 0, 0);		// 设置第一个窗口的位置
+	//imshow("cropped_Image", featureImg);
 
 	//namedWindow("ExG_Image", WINDOW_NORMAL);
 	//moveWindow("ExG_Image", 0, 10);		
@@ -195,13 +197,13 @@ int main()
 	moveWindow("Connect_Img", 0, 550);
 	imshow("Connect_Img", ConnectImg);
 
-	namedWindow("F_Cluster_Img", WINDOW_NORMAL);
-	moveWindow("F_Cluster_Img", 1000, 0);
-	imshow("F_Cluster_Img", F_ClusterImg);
+	//namedWindow("F_Cluster_Img", WINDOW_NORMAL);
+	//moveWindow("F_Cluster_Img", 1000, 0);
+	//imshow("F_Cluster_Img", F_ClusterImg);
 
-	namedWindow("S_Cluster_Img", WINDOW_NORMAL);
-	moveWindow("S_Cluster_Img", 1300, 0);
-	imshow("S_Cluster_Img", S_ClusterImg);
+	//namedWindow("S_Cluster_Img", WINDOW_NORMAL);
+	//moveWindow("S_Cluster_Img", 1300, 0);
+	//imshow("S_Cluster_Img", S_ClusterImg);
 
 	////namedWindow("Hough_Img", WINDOW_NORMAL);
 	////moveWindow("Hough_Img", 500, 1000);

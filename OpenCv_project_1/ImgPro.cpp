@@ -721,7 +721,7 @@ Mat CImgPro::EightConnectivity(Mat& img, float cof)
 	}
 	mean_area = sum_area / (num_labels - 1); // 计算平均面积，减去背景
 
-	Mat output = Mat::zeros(labels.size(), CV_8U);
+	Mat output = Mat::zeros(labels.size(), CV_8UC1);
 	for (int i = 0; i < labels.rows; i++) {
 		for (int j = 0; j < labels.cols; j++) {
 			int label = labels.at<int>(i, j); // 获取当前像素的标记
@@ -730,6 +730,8 @@ Mat CImgPro::EightConnectivity(Mat& img, float cof)
 			}
 		}
 	}
+
+	//cv::ximgproc::thinning(src, dst, cv::ximgproc::THINNING_ZHANGSUEN);
 
 	return output;
 }
@@ -1046,32 +1048,32 @@ Mat CImgPro::ClusterPointsDrawing(Mat& src, vector<Cluster>& points)
 			int count = 0;		//0表示计算的是最小点1表示最大点
 			for (Point& p : cluster.CategID) {
 				if (count == 0) {
-					if (cluster.ID == 'l') {
-						int x = calculate_x(p, k1, outimg.rows);
-						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					}
+					//if (cluster.ID == 'l') {
+					//	int x = calculate_x(p, k1, outimg.rows);
+					//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					//}
 					if (cluster.ID == 'c') {
 						int x = calculate_x(p, k5, outimg.rows);
 						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
 					}
-					if (cluster.ID == 'r') {
-						int x = calculate_x(p, k3, outimg.rows);
-						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					}
+					//if (cluster.ID == 'r') {
+					//	int x = calculate_x(p, k3, outimg.rows);
+					//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					//}
 				}
 				if (count == 1) {
-					if (cluster.ID == 'l') {
-						int x = calculate_x(p, k2, outimg.rows);
-						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					}
+					//if (cluster.ID == 'l') {
+					//	int x = calculate_x(p, k2, outimg.rows);
+					//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					//}
 					if (cluster.ID == 'c') {
 						int x = calculate_x(p, k6, outimg.rows);
 						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
 					}
-					if (cluster.ID == 'r') {
-						int x = calculate_x(p, k4, outimg.rows);
-						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					}
+					//if (cluster.ID == 'r') {
+					//	int x = calculate_x(p, k4, outimg.rows);
+					//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					//}
 				}
 				count++;
 			}
@@ -1512,6 +1514,9 @@ vector<CImgPro::Cluster> CImgPro::firstClusterBaseOnDbscan(Cluster& points, floa
 	vector<int> clusterIDs(points.points.size(), -1); // 初始化所有点的聚类标识为-1，表示噪声点
 	int currentClusterID = 0; // 当前聚类ID
 
+
+
+
 	for (int i = 0; i < points.points.size(); ++i) {
 		if (clusterIDs[i] == -1) { // 未被分类
 			Point& p = points.points[i];
@@ -1536,9 +1541,9 @@ vector<CImgPro::Cluster> CImgPro::firstClusterBaseOnDbscan(Cluster& points, floa
 	return cluster_points; 
 }
 
-vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX)
+vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX, float cof)
 {
-	// 假设有一个变量 imageCenterX，它是图像中线的x坐标
+	//imageCenterX是图像中线的x坐标
 	vector<float> centroidDistances;
 	vector<float> centroidXCoords;
 	for (Cluster& cluster : cluster_points) {
@@ -1566,23 +1571,31 @@ vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cl
 	vector<Cluster> final_cluster_points;
 	vector<Cluster> right, left, center;
 	for (int i = 0; i < cluster_points.size(); ++i) {
-		if (centroidDistances[i] > 0.65 * averageDistance) {
-			if (centroidXCoords[i] > imgCenterX) {		//右边
-				cluster_points[i].ID = 'r';
-				right.push_back(cluster_points[i]);
-			}
-			else {
-				cluster_points[i].ID = 'l';
-				left.push_back(cluster_points[i]);
-			}
-		}
-		else {
+		//if (centroidDistances[i] > cof * averageDistance) {
+		//	if (centroidXCoords[i] > imgCenterX) {		//右边
+		//		cluster_points[i].ID = 'r';
+		//		right.push_back(cluster_points[i]);
+		//	}
+		//	else {
+		//		cluster_points[i].ID = 'l';
+		//		left.push_back(cluster_points[i]);
+		//	}
+		//}
+		//else {
+		//	cluster_points[i].ID = 'c';
+		//	center.push_back(cluster_points[i]);//中间
+		//}
+
+		if (centroidDistances[i] <= cof * averageDistance) {
 			cluster_points[i].ID = 'c';
-			center.push_back(cluster_points[i]);//中间
+			center.push_back(cluster_points[i]);
 		}
 	}
 
 	Cluster temp;
+
+	// lfet side
+	/* 
 	while (!left.empty())
 	{
 		Point minPoint = min(left[0].points);
@@ -1613,13 +1626,7 @@ vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cl
 		temp.points.clear();
 		temp.CategID.clear();
 	}
-
-	/*for (const auto& cluster : center) {
-		temp.points.insert(temp.points.end(), cluster.points.begin(), cluster.points.end());
-	}
-	final_cluster_points.push_back(temp);
-	temp.points.clear();*/
-
+	*/
 
 	while (!center.empty())
 	{
@@ -1651,7 +1658,8 @@ vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cl
 		temp.CategID.clear();
 	}
 
-
+	//right side
+	/*
 	while (!right.empty())
 	{
 		Point minPoint = min(right[0].points);
@@ -1681,7 +1689,7 @@ vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cl
 		temp.points.clear();
 		temp.CategID.clear();
 	}
-
+	*/
 
 	return final_cluster_points;
 }

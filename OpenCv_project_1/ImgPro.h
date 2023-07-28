@@ -41,7 +41,7 @@ public:
 	Mat EightConnectivity(Mat& img, float cof);
 	vector<Cluster> Gaussian_Mixture_Model(Cluster& points, int numCluster, ml::EM::Types covarianceType);
 	vector<Cluster> firstClusterBaseOnDbscan(Cluster& points, float epsilon, int minPts);
-	vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX);
+	vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX, float cof);
 	vector<int> spectralClustering(Cluster& points, int k, double sigma);
 	void NormalizedExG(Mat srcimg, Mat& outimg);
 	vector<Cluster> Cluster_Nearest(Mat& featureimage);
