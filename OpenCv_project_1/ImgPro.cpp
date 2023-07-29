@@ -5,7 +5,7 @@
 #include <random> 
 #include<opencv2/imgproc/types_c.h>
 
-
+float CImgPro::NonZeroPixelRatio = 0.0f;
 
 //////////////////////////////////////////////////////////////////////
 // ExG归一化
@@ -528,6 +528,24 @@ float CImgPro::euclidean_distance(Point a, Point b)
 	return sqrt(pow(dx, 2) + pow(dy, 2));		//放大x方向距离缩小y方向距离
 }
 
+float CImgPro::calculateNonZeroPixelRatio(Mat& img)
+{
+	int nonZeroPixelCount = 0;
+	int totalPixelCount = img.rows * img.cols;
+
+	for (int i = 0; i < img.rows; ++i) {
+		for (int j = 0; j < img.cols; ++j) {
+			if (img.at<uchar>(i, j) != 0) {
+				nonZeroPixelCount++;
+			}
+		}
+	}
+
+	// NonZeroPixelRatio
+	float ratio = (float) nonZeroPixelCount / totalPixelCount;
+	return ratio;
+}
+
 int CImgPro::calculate_x(Point p, float k, int outimg_rows)
 {
 	// 根据直线方程y = kx + b，求出b的值
@@ -726,14 +744,29 @@ Mat CImgPro::EightConnectivity(Mat& img, float cof)
 		for (int j = 0; j < labels.cols; j++) {
 			int label = labels.at<int>(i, j); // 获取当前像素的标记
 			if (label > 0 && stats.at<int>(label, CC_STAT_AREA) >= mean_area * cof) { // 判断当前像素所属的连通组件的面积是否大于或等于平均面积
-				output.at<uchar>(i, j) = 255; // 将output中对应的像素设置为255
+				output.at<uchar>(i, j) = 255; // 将output中对应的像素设置为255				
 			}
 		}
 	}
 
-	//cv::ximgproc::thinning(src, dst, cv::ximgproc::THINNING_ZHANGSUEN);
-
 	return output;
+}
+
+Mat CImgPro::skeletonization(Mat& img, Cluster& points)
+{
+
+	Mat outimg;
+	thinning(img, outimg, ximgproc::THINNING_ZHANGSUEN);
+
+	for (int i = 0; i < outimg.rows; i++) {
+		for (int j = 0; j < outimg.cols; j++) {
+			if (outimg.at<uchar>(i, j) != 0) {
+				points.points.push_back(Point(j, i));
+			}
+		}
+	}
+
+	return outimg;
 }
 
 void CImgPro::processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, int windowWidth, int windowHeight)
@@ -952,6 +985,7 @@ Mat CImgPro::OTSU(Mat src)
 
 	//二值化
 	Mat OtsuImg(src.size(), CV_8UC1, Scalar(0));
+	int nonZeroPixelCount = 0;
 	for (int i = 0; i < src.rows; i++)
 	{
 		for (int j = 0; j < src.cols; j++)
@@ -960,6 +994,7 @@ Mat CImgPro::OTSU(Mat src)
 			if (src.at<uchar>(i, j) > thresh)
 			{
 				OtsuImg.at<uchar>(i, j) = 255;
+				nonZeroPixelCount++;
 			}
 			//背景部分
 			//else
@@ -968,6 +1003,10 @@ Mat CImgPro::OTSU(Mat src)
 			//}
 		}
 	}
+
+	// NonZeroPixelRatio for MorphologicalOperation
+	int totalPixel = src.rows * src.cols;
+	NonZeroPixelRatio = (float)nonZeroPixelCount / totalPixel;
 
 	return OtsuImg;
 }
@@ -1043,42 +1082,42 @@ Mat CImgPro::ClusterPointsDrawing(Mat& src, vector<Cluster>& points)
 	}
 
 	//绘制范围直线
-	for (Cluster& cluster : points) {
-		if (cluster.ID != '\\0') {
-			int count = 0;		//0表示计算的是最小点1表示最大点
-			for (Point& p : cluster.CategID) {
-				if (count == 0) {
-					//if (cluster.ID == 'l') {
-					//	int x = calculate_x(p, k1, outimg.rows);
-					//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					//}
-					if (cluster.ID == 'c') {
-						int x = calculate_x(p, k5, outimg.rows);
-						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					}
-					//if (cluster.ID == 'r') {
-					//	int x = calculate_x(p, k3, outimg.rows);
-					//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					//}
-				}
-				if (count == 1) {
-					//if (cluster.ID == 'l') {
-					//	int x = calculate_x(p, k2, outimg.rows);
-					//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					//}
-					if (cluster.ID == 'c') {
-						int x = calculate_x(p, k6, outimg.rows);
-						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					}
-					//if (cluster.ID == 'r') {
-					//	int x = calculate_x(p, k4, outimg.rows);
-					//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-					//}
-				}
-				count++;
-			}
-		}
-	}
+	//for (Cluster& cluster : points) {
+	//	if (cluster.ID != '\\0') {
+	//		int count = 0;		//0表示计算的是最小点1表示最大点
+	//		for (Point& p : cluster.CategID) {
+	//			if (count == 0) {
+	//				//if (cluster.ID == 'l') {
+	//				//	int x = calculate_x(p, k1, outimg.rows);
+	//				//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				//}
+	//				if (cluster.ID == 'c') {
+	//					int x = calculate_x(p, k5, outimg.rows);
+	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				}
+	//				//if (cluster.ID == 'r') {
+	//				//	int x = calculate_x(p, k3, outimg.rows);
+	//				//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				//}
+	//			}
+	//			if (count == 1) {
+	//				//if (cluster.ID == 'l') {
+	//				//	int x = calculate_x(p, k2, outimg.rows);
+	//				//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				//}
+	//				if (cluster.ID == 'c') {
+	//					int x = calculate_x(p, k6, outimg.rows);
+	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				}
+	//				//if (cluster.ID == 'r') {
+	//				//	int x = calculate_x(p, k4, outimg.rows);
+	//				//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				//}
+	//			}
+	//			count++;
+	//		}
+	//	}
+	//}
 
 	return outimg;
 }
@@ -1727,201 +1766,6 @@ void CImgPro::expandCluster(Cluster& points, vector<int>& clusterIDs, int curren
 			}
 		}
 	}
-}
-
-vector<int> LFDC(vector<vector<double>>& X, vector<int>& YIni, int dim)
-{
-	int Maxite = 4; // 最大迭代次数
-	int flag = 0; // 停止标志位，初始为0
-	int outite = 0; // 外部迭代次数，初始为0
-	vector<int> classLabel; // 类别标签向量
-	for (int i = 0; i < YIni.size(); i++) {
-		// 遍历样本的类别标签，将不重复的标签加入classLabel
-		if (find(classLabel.begin(), classLabel.end(), YIni[i]) == classLabel.end()) {
-			classLabel.push_back(YIni[i]);
-		}
-	}
-	int nClass = classLabel.size(); // 类别数量
-	int nFea = X[0].size(); // 特征维度
-	int nSmp = X.size(); // 样本数量
-	vector<int> pY = YIni; // 当前的预测标签，初始为原始标签
-	int u = 1; // 权重参数u
-	int MaxIter = 30; // 最大迭代次数
-	double epsilon1 = 1; // 参数epsilon1
-	double epsilon2 = 1; // 参数epsilon2
-	double delta = 1e-6; // 微小值delta
-
-	while (flag == 0 && outite < Maxite) {
-		outite++; // 外部迭代次数加1
-		vector<int> tY = pY; // 保存上一轮的预测标签
-		vector<vector<double>> m_Cls(nClass, vector<double>(1)); // 每个类别样本的数量
-		vector<vector<int>> idxCls(nClass); // 每个类别的样本索引集合
-		vector<double> M(nFea); // 特征均值向量
-
-		//X矩阵的行均值
-		for (int i = 0; i < nSmp; i++) {
-			for (int j = 0; j < nFea; j++) {
-				M[j] += X[i][j];
-			}
-		}
-
-		for (int j = 0; j < nFea; j++) {
-			M[j] /= nSmp;
-		}
-
-		vector<vector<double>> MCls(nFea, vector<double>(nClass));//每个类别的特征均值
-		vector<vector<double>> HB(nFea, vector<double>(nClass));//类内离散度
-		vector<vector<double>> HW(nFea, vector<double>(nSmp));//类间离散度
-		vector<vector<vector<double>>> WallCls(nClass, vector<vector<double>>(nFea, vector<double>(nFea)));//每个类别的权重矩阵
-
-		//遍历每个类别
-		for (int k = 0; k < nClass; k++) {
-			//根据k判断是否出现在tY中
-			bool disc = false;
-			for (int i = 0; i < tY.size(); i++) {
-				if (k == tY[i]) {
-					disc = true;
-					break;
-				}
-			}
-			if (!disc) {
-				continue; // 类别k不存在于tY中，则跳过当前循环
-			}
-
-			idxCls[k].clear();
-			for (int i = 0; i < tY.size(); i++) {
-				if (tY[i] == classLabel[k]) {// 找到属于类别k的样本索引
-					idxCls[k].push_back(i);
-				}
-			}
-
-			m_Cls[k][0] = idxCls[k].size();// 类别k的样本数量
-
-			// 计算类别k的特征均值矩阵MCls和离散度矩阵HB
-			for (int j = 0; j < nFea; j++) {
-				for (int i = 0; i < idxCls[k].size(); i++) {
-					MCls[j][k] += X[idxCls[k][i]][j];//idxCls[k][i]取出该类在x中对应的行索引
-				}
-				MCls[j][k] /= m_Cls[k][0];
-				HB[j][k] = sqrt(m_Cls[k][0]) * (MCls[j][k] - M[j]);
-			}
-
-			//总体离散度
-			for (int j = 0; j < nSmp; j++) {
-				for (int i = 0; i < nFea; i++) {
-					HW[i][j] = X[j][i] - MCls[i][k];
-				}
-			}
-
-			vector<int> Ind1(m_Cls[k][0], 0);
-			vector<double> Fk(m_Cls[k][0], 0.0);
-			vector<vector<double>> S1k(nFea, vector<double>(nFea));
-			vector<vector<double>> S2k(nFea, vector<double>(nFea));
-			vector<double> A;
-			vector<double> B;
-
-			for (int l = 0; l < m_Cls[k][0]; l++) {
-				double normHW = 0.0;
-				for (int i = 0; i < nFea; i++) {
-					normHW += pow(WallCls[k][i][0] * HW[i][l], 2);
-				}
-				if (normHW <= epsilon1) {
-					A.push_back(normHW);
-					Ind1[l] = 1;
-				}
-				else {
-					Ind1[l] = 0;
-				}
-				Fk[l] = Ind1[l] / (normHW + delta);
-			}
-
-			for (int l = 0; l < m_Cls[k][0]; l++) {
-				for (int i = 0; i < nFea; i++) {
-					for (int j = 0; j < nFea; j++) {
-						S1k[i][j] += Fk[l] * HW[i][l] * HW[j][l];
-					}
-				}
-			}
-
-			for (int i = 0; i < nFea; i++) {
-				for (int j = 0; j < nFea; j++) {
-					S1k[i][j] /= m_Cls[k][0];
-				}
-			}
-
-			for (int l = 0; l < m_Cls[k][0]; l++) {
-				for (int i = 0; i < nFea; i++) {
-					for (int j = 0; j < nFea; j++) {
-						S2k[i][j] += (HW[i][l] - HB[i][k]) * (HW[j][l] - HB[j][k]);
-					}
-				}
-			}
-
-			for (int i = 0; i < nFea; i++) {
-				for (int j = 0; j < nFea; j++) {
-					S2k[i][j] /= m_Cls[k][0];
-				}
-			}
-
-			vector<vector<double>> S(nFea, vector<double>(nFea));
-			for (int i = 0; i < nFea; i++) {
-				for (int j = 0; j < nFea; j++) {
-					S[i][j] = u * S1k[i][j] + (1 - u) * S2k[i][j];
-				}
-			}
-
-			vector<double> eigval;
-			vector<vector<double>> eigvec;
-
-			// 计算特征值和特征向量
-			//EigenvalueDecomposition(S, eigval, eigvec);
-
-			// 选取前dim个最大特征值对应的特征向量作为投影矩阵
-			vector<vector<double>> W(nFea, vector<double>(dim));
-
-			for (int i = 0; i < nFea; i++) {
-				for (int j = 0; j < dim; j++) {
-					W[i][j] = eigvec[i][j];
-				}
-			}
-
-			// 计算样本点与类别均值之间的距离
-			vector<vector<double>> dist(nSmp, vector<double>(nClass));
-			for (int i = 0; i < nSmp; i++) {
-				for (int k = 0; k < nClass; k++) {
-					double sum = 0.0;
-					for (int j = 0; j < nFea; j++) {
-						sum += pow(X[i][j] - MCls[j][k], 2);
-					}
-					dist[i][k] = sqrt(sum);
-				}
-			}
-
-			// 数据点分配到距离最近的类别
-			for (int i = 0; i < nSmp; i++) {
-				double minDist = dist[i][0];
-				int minIdx = 0;
-				for (int k = 1; k < nClass; k++) {
-					if (dist[i][k] < minDist) {
-						minDist = dist[i][k];
-						minIdx = k;
-					}
-				}
-				pY[i] = classLabel[minIdx];
-			}
-
-			// 检查聚类结果是否满足停止条件
-			flag = 1;
-			for (int i = 0; i < nSmp; i++) {
-				if (pY[i] != tY[i]) {
-					flag = 0;
-					break;
-				}
-			}
-		}
-	}
-
-	return pY;
 }
 
 //改进的最小二乘法，能够拟合垂直的直线

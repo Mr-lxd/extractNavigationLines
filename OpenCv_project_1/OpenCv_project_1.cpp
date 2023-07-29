@@ -8,7 +8,7 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_112252.jpg";
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_112051.jpg";
 	Mat inputImage = imread(filename);
 
 	//// 获取图像尺寸
@@ -37,18 +37,37 @@ int main()
 	
 	Mat OtsuImg = myImgPro.OTSU(MedianBlurImg);
 
-
 	/*
-		多重开运算对于消除细小杂草有帮助，但同时也会减少作物细节
+		形态学操作对于消除细小杂草有帮助，但同时也会减少作物细节
 	*/
-	/*int Morph_kernel_size = 3, cycle_num = 1;
-	Mat MorphImg = myImgPro.MorphologicalOperation(OtsuImg, Morph_kernel_size, cycle_num);*/
+	Mat MorphImg;
+	int flag = 0;
+	if (CImgPro::NonZeroPixelRatio > 0.2) {
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5);
+		flag = 1;
+	}
+	
 
 	/*
 		使用八连通筛选算法可有效去除噪声和细小杂草，但可进一步优化参数保留更多作物细节
 	*/
 	float cof = 0.7;
-	Mat ConnectImg = myImgPro.EightConnectivity(OtsuImg, cof);
+	Mat ConnectImg;
+	if (flag == 0) {
+		ConnectImg = myImgPro.EightConnectivity(OtsuImg, cof);
+	}
+	else
+	{
+		ConnectImg = myImgPro.EightConnectivity(MorphImg, cof);
+	}
+	
+	
+
+	/*
+		骨架化，耗费时间长
+	*/
+	//CImgPro::Cluster skeleton_points;
+	//Mat skeletonImg = myImgPro.skeletonization(ConnectImg, skeleton_points);
 
 
 	/*
@@ -65,9 +84,9 @@ int main()
 	/*
 		目前看使用长条窗口去提取作物特征点比较好，能保留作物主要特征同时减少数据量
 	*/
-	//CImgPro::Cluster points;
-	//Mat featureImg(ConnectImg.size(), CV_8UC1, Scalar(0));
-	//myImgPro.processImageWithWindow(ConnectImg, featureImg, points, 4, 8);
+	CImgPro::Cluster reduce_points;
+	Mat featureImg(ConnectImg.size(), CV_8UC1, Scalar(0));
+	myImgPro.processImageWithWindow(ConnectImg, featureImg, reduce_points, 8, 8);
 
 
 	/*
@@ -102,22 +121,6 @@ int main()
 	//ml::EM::Types covarianceType = ml::EM::Types::COV_MAT_GENERIC; //这里使用完全协方差矩阵，适用于数据中存在明显的相关性的情况
 	//vector<CImgPro::Cluster> cluster_points = myImgPro.Gaussian_Mixture_Model(points, 3, covarianceType);
 	//Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, cluster_points);
-
-	
-	
-	/*
-		MatrixXd X(5, 2);
-		X << 2.0, 4.0,
-			3.0, 5.0,
-			1.0, 2.0,
-			4.0, 6.0,
-			5.0, 7.0;
-		VectorXi YIni(5);
-		YIni << 1, 1, 2, 2, 3;
-
-		myImgPro.LFDC(X, YIni, 2);
-
-	*/
 	
 
 	/*
@@ -140,11 +143,11 @@ int main()
 	/*
 		使用dbscan的思想
 	*/
-	//int imgCenterX = inputImage.cols / 2;
-	//vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(points, 110, 50);
-	//vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, imgCenterX, 0.65);
-	//Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
-	//Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
+	int imgCenterX = inputImage.cols / 2;
+	vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(reduce_points, 110, 50);
+	vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, imgCenterX, 0.65);	
+	Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
+	Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
 
 
 	/*
@@ -169,9 +172,9 @@ int main()
 
 
 
-	//namedWindow("cropped_Image", WINDOW_NORMAL);
-	//moveWindow("cropped_Image", 0, 0);		// 设置第一个窗口的位置
-	//imshow("cropped_Image", featureImg);
+	namedWindow("feature_Image", WINDOW_NORMAL);
+	moveWindow("feature_Image", 0, 0);		// 设置第一个窗口的位置
+	imshow("feature_Image", featureImg);
 
 	//namedWindow("ExG_Image", WINDOW_NORMAL);
 	//moveWindow("ExG_Image", 0, 10);		
@@ -189,21 +192,25 @@ int main()
 	moveWindow("OTSU_Img", 500, 500);		 
 	imshow("OTSU_Img",OtsuImg);
 
-	//namedWindow("Morph_Img", WINDOW_NORMAL);
-	//moveWindow("Morph_Img", 0, 1000);
-	//imshow("Morph_Img", MorphImg);
+	namedWindow("Morph_Img", WINDOW_NORMAL);
+	moveWindow("Morph_Img", 0, 1000);
+	imshow("Morph_Img", MorphImg);
 
 	namedWindow("Connect_Img", WINDOW_NORMAL);
 	moveWindow("Connect_Img", 0, 550);
 	imshow("Connect_Img", ConnectImg);
 
-	//namedWindow("F_Cluster_Img", WINDOW_NORMAL);
-	//moveWindow("F_Cluster_Img", 1000, 0);
-	//imshow("F_Cluster_Img", F_ClusterImg);
+	namedWindow("F_Cluster_Img", WINDOW_NORMAL);
+	moveWindow("F_Cluster_Img", 700, 0);
+	imshow("F_Cluster_Img", F_ClusterImg);
 
-	//namedWindow("S_Cluster_Img", WINDOW_NORMAL);
-	//moveWindow("S_Cluster_Img", 1300, 0);
-	//imshow("S_Cluster_Img", S_ClusterImg);
+	namedWindow("S_Cluster_Img", WINDOW_NORMAL);
+	moveWindow("S_Cluster_Img", 800, 0);
+	imshow("S_Cluster_Img", S_ClusterImg);
+
+	//namedWindow("Skeleton_Img", WINDOW_NORMAL);
+	//moveWindow("Skeleton_Img", 500, 700);
+	//imshow("Skeleton_Img", skeletonImg);
 
 	////namedWindow("Hough_Img", WINDOW_NORMAL);
 	////moveWindow("Hough_Img", 500, 1000);

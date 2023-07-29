@@ -80,11 +80,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\opencv\build\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\opencv\vs2019\install\include\opencv2;D:\opencv\vs2019\install\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\Windows Kits\10\Lib\10.0.18362.0\ucrt\x64;C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.28.29333\lib\x64;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.18362.0\um\x64;D:\opencv\vs2019\install\x64\vc16\lib;C:\Program Files (x86)\Windows Kits\10\Lib\;C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.28.29333\lib</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>D:\opencv\vs2019\install\include\opencv2;D:\opencv\vs2019\install\include;D:\opencv\build\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\Windows Kits\10\Lib\10.0.18362.0\ucrt\x64;C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.28.29333\lib\x64;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.18362.0\um\x64;D:\opencv\vs2019\install\x64\vc16\lib;</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -126,7 +128,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_world470d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_bgsegm470d.lib;opencv_bioinspired470d.lib;opencv_calib3d470d.lib;opencv_ccalib470d.lib;opencv_core470d.lib;opencv_datasets470d.lib;opencv_dnn_objdetect470d.lib;opencv_dnn_superres470d.lib;opencv_dnn470d.lib;opencv_dpm470d.lib;opencv_face470d.lib;opencv_features2d470d.lib;opencv_flann470d.lib;opencv_fuzzy470d.lib;opencv_gapi470d.lib;opencv_hfs470d.lib;opencv_highgui470d.lib;opencv_img_hash470d.lib;opencv_imgcodecs470d.lib;opencv_imgproc470d.lib;opencv_intensity_transform470d.lib;opencv_line_descriptor470d.lib;opencv_mcc470d.lib;opencv_ml470d.lib;opencv_objdetect470d.lib;opencv_optflow470d.lib;opencv_phase_unwrapping470d.lib;opencv_photo470d.lib;opencv_plot470d.lib;opencv_quality470d.lib;opencv_rapid470d.lib;opencv_reg470d.lib;opencv_rgbd470d.lib;opencv_saliency470d.lib;opencv_shape470d.lib;opencv_stereo470d.lib;opencv_stitching470d.lib;opencv_structured_light470d.lib;opencv_superres470d.lib;opencv_surface_matching470d.lib;opencv_text470d.lib;opencv_tracking470d.lib;opencv_video470d.lib;opencv_videoio470d.lib;opencv_videostab470d.lib;opencv_wechat_qrcode470d.lib;opencv_xfeatures2d470d.lib;opencv_ximgproc470d.lib;opencv_xobjdetect470d.lib;opencv_xphoto470d.lib;opencv_aruco470d.lib;opencv_barcode470d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,6 +145,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opencv_bgsegm470.lib;opencv_bioinspired470.lib;opencv_calib3d470.lib;opencv_ccalib470.lib;opencv_core470.lib;opencv_datasets470.lib;opencv_dnn_objdetect470.lib;opencv_dnn_superres470.lib;opencv_dnn470.lib;opencv_dpm470.lib;opencv_face470.lib;opencv_features2d470.lib;opencv_flann470.lib;opencv_fuzzy470.lib;opencv_gapi470.lib;opencv_hfs470.lib;opencv_highgui470.lib;opencv_img_hash470.lib;opencv_imgcodecs470.lib;opencv_imgproc470.lib;opencv_intensity_transform470.lib;opencv_line_descriptor470.lib;opencv_mcc470.lib;opencv_ml470.lib;opencv_objdetect470.lib;opencv_optflow470.lib;opencv_phase_unwrapping470.lib;opencv_photo470.lib;opencv_plot470.lib;opencv_quality470.lib;opencv_rapid470.lib;opencv_reg470.lib;opencv_rgbd470.lib;opencv_saliency470.lib;opencv_shape470.lib;opencv_stereo470.lib;opencv_stitching470.lib;opencv_structured_light470.lib;opencv_superres470.lib;opencv_surface_matching470.lib;opencv_text470.lib;opencv_tracking470.lib;opencv_video470.lib;opencv_videoio470.lib;opencv_videostab470.lib;opencv_wechat_qrcode470.lib;opencv_xfeatures2d470.lib;opencv_ximgproc470.lib;opencv_xobjdetect470.lib;opencv_xphoto470.lib;opencv_aruco470.lib;opencv_barcode470.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
