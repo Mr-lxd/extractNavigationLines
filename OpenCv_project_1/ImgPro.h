@@ -32,6 +32,7 @@ class CImgPro
 		}Cluster;
 
 		Mat MedianBlur(Mat srcimg, int kernel_size);
+		Mat verticalProjection(Mat& img, const vector<Cluster>& clusters);
 		Mat My_SUSAN(Mat& src, int thresh, int k, Cluster& points);
 		Mat OTSU(Mat src);
 		Mat MorphologicalOperation(Mat src, int kernel_size, int cycle_num);
@@ -45,6 +46,8 @@ class CImgPro
 		vector<Cluster> firstClusterBaseOnDbscan(Cluster& points, float epsilon, int minPts);
 		vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX, float cof);
 		vector<int> spectralClustering(Cluster& points, int k, double sigma);
+		vector<Cluster> MaxPoints(vector<Cluster>& clusters);
+		void retainMainStem(vector<Cluster>& clusters);
 		void NormalizedExG(Mat srcimg, Mat& outimg);
 		vector<Cluster> Cluster_Nearest(Mat& featureimage);
 		//void Hough_Line(vector<Cluster> clusters, Mat& outimg, vector<CCoorTran::LineParameter>& linepara);
@@ -57,6 +60,7 @@ class CImgPro
 	private:
 
 		float k1, k2, k3, k4, k5, k6;		//分别为左中右聚类的最小和最大点对应的范围直线的斜率
+		float x_max, x_min;		//the x-coordinate of the intersection between the histogram and the horizontal line
 
 		float euclidean_distance(Point a, Point b);
 		float calculateNonZeroPixelRatio(Mat& img);

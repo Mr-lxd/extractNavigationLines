@@ -787,12 +787,22 @@ void CImgPro::processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, 
 			{
 				for (int wx = 0; wx < windowWidth; ++wx)
 				{
-					if (srcimg.at<uchar>(y + wy, x + wx) != 0)
-					{
-						sumY += y + wy;
-						sumX += x + wx;
-						count++;
-						//img.at<uchar>(y + wy, x + wx) = 0;
+					if (srcimg.channels() == 1) {
+						if (srcimg.at<uchar>(y + wy, x + wx) != 0)
+						{
+							sumY += y + wy;
+							sumX += x + wx;
+							count++;
+							//img.at<uchar>(y + wy, x + wx) = 0;
+						}
+					}
+					if (srcimg.channels() == 3) {
+						if (srcimg.at<Vec3b>(y + wy, x + wx) != Vec3b(0, 0, 0))
+						{
+							sumY += y + wy;
+							sumX += x + wx;
+							count++;
+						}
 					}
 				}
 			}
@@ -808,6 +818,70 @@ void CImgPro::processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, 
 	}
 }
 
+Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters)
+{
+	vector<int> histogram(img.cols, 0);
+
+	for (auto& c : clusters) {
+		for (auto& p : c.points) {
+			histogram[p.x]++;			
+		}
+	}	
+
+	int y_max = histogram[0];
+	for (auto& y : histogram) {
+		if (y > y_max) {
+			y_max = y;
+		}
+	}
+	
+
+	Size size(img.cols, 1.2 * y_max);
+	Mat histogramImg(size, CV_8UC1, Scalar(0));
+	for (int i = 0; i < histogram.size(); i++) {
+		// Draw the histogram line
+		line(histogramImg, Point(i, 1.2 * y_max), Point(i, 1.2 * y_max - histogram[i]), Scalar(255), 1);
+	}
+
+	// Draw a horizontal line 
+	int horizontal_line_height = 0.8 * y_max;
+	//line(histogramImg, Point(0, horizontal_line_height), Point(histogramImg.cols - 1, horizontal_line_height), Scalar(255), 1);
+
+	// Find the x-coordinate of the intersection between the histogram and the horizontal line
+	bool flag = true;
+	x_max = -1, x_min = histogramImg.cols + 1;
+	for (int i = 0; i < histogram.size(); i++) {
+		if (histogramImg.at<uchar>(horizontal_line_height, i) == 255) {
+			if (flag) {
+				x_min = i;
+				flag = false;
+			}
+			if (i > x_max) {
+				x_max = i;
+			}
+		}
+	}
+
+	return histogramImg;
+}
+
+void CImgPro::retainMainStem(vector<Cluster>& clusters)
+{
+	for (auto& c : clusters) {
+		auto it = c.points.begin();
+		while (it != c.points.end()) {
+			if (it->x < x_min || it->x > x_max) {
+				// Remove points outside the desired range
+				it = c.points.erase(it);
+			}
+			else {
+				// Keep points inside the desired range
+				++it;
+			}
+		}
+	}
+
+}
 
 //////////////////////////////////////////////////
 //37 pixel mask:    ooo       3 by 3 mask:  ooo
@@ -1218,7 +1292,7 @@ void CImgPro::RANSAC(vector<Cluster>& points, float thresh, Mat& outimg)
 	leastSquaresFit_edit(LeastSquarePoints, outimg);
 }
 
-vector<CImgPro::Cluster> CImgPro::ComparePoints(vector<CImgPro::Cluster>& points)
+vector<CImgPro::Cluster> CImgPro::ComparePoints(vector<Cluster>& points)
 {
 	Cluster max1, max2, max3; // 用来存储最大的三个成员
 	vector<Cluster> cmpPoints;
@@ -1268,6 +1342,23 @@ vector<CImgPro::Cluster> CImgPro::ComparePoints(vector<CImgPro::Cluster>& points
 
 
 	return cmpPoints;
+}
+
+vector<CImgPro::Cluster> CImgPro::MaxPoints(vector<Cluster>& clusters)
+{
+	Cluster max = clusters[0];
+	if (clusters.size() > 1) {
+		for (auto& c : clusters) {
+			if (c.points.size() > max.points.size()) {
+				max = c;
+			}
+		}
+	}
+
+	vector<Cluster> maxPts;
+	maxPts.push_back(max);
+
+	return maxPts;
 }
 
 vector<CImgPro::Cluster> CImgPro::Cluster_for_Ransac(Mat& featureimage, int areaHeight, int areaWidth, int areaDegree, int areaExtent)

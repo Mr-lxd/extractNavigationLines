@@ -8,7 +8,7 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_112051.jpg";
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_111417.jpg";
 	Mat inputImage = imread(filename);
 
 	//// 获取图像尺寸
@@ -42,11 +42,11 @@ int main()
 	*/
 	Mat MorphImg;
 	int flag = 0;
-	if (CImgPro::NonZeroPixelRatio > 0.2) {
+	if (CImgPro::NonZeroPixelRatio > 0.1) {
 		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5);
 		flag = 1;
 	}
-	
+
 
 	/*
 		使用八连通筛选算法可有效去除噪声和细小杂草，但可进一步优化参数保留更多作物细节
@@ -145,10 +145,24 @@ int main()
 	*/
 	int imgCenterX = inputImage.cols / 2;
 	vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(reduce_points, 110, 50);
+	//vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(reduce_points, 40, 30);
 	vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, imgCenterX, 0.65);	
 	Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
 	Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
 
+
+	vector<CImgPro::Cluster> maxPts = myImgPro.MaxPoints(second_cluster_points);
+	Mat maxPtsImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
+	
+
+	Mat HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts);
+
+	myImgPro.retainMainStem(maxPts);
+	Mat MainStemImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
+
+	CImgPro::Cluster final_points;
+	Mat ExtractImg(MainStemImg.size(), CV_8UC1, Scalar(0));
+	myImgPro.processImageWithWindow(MainStemImg, ExtractImg, final_points, 16, 32);
 
 	/*
 		目前来看，霍夫变换无法很好处理离群点和噪声
@@ -192,9 +206,12 @@ int main()
 	moveWindow("OTSU_Img", 500, 500);		 
 	imshow("OTSU_Img",OtsuImg);
 
-	namedWindow("Morph_Img", WINDOW_NORMAL);
-	moveWindow("Morph_Img", 0, 1000);
-	imshow("Morph_Img", MorphImg);
+	if (flag == 1) {
+		namedWindow("Morph_Img", WINDOW_NORMAL);
+		moveWindow("Morph_Img", 0, 1000);
+		imshow("Morph_Img", MorphImg);
+	}
+	
 
 	namedWindow("Connect_Img", WINDOW_NORMAL);
 	moveWindow("Connect_Img", 0, 550);
@@ -207,6 +224,22 @@ int main()
 	namedWindow("S_Cluster_Img", WINDOW_NORMAL);
 	moveWindow("S_Cluster_Img", 800, 0);
 	imshow("S_Cluster_Img", S_ClusterImg);
+
+	namedWindow("maxPts_Img", WINDOW_NORMAL);
+	moveWindow("maxPts_Img", 800, 200);
+	imshow("maxPts_Img", maxPtsImg);
+
+	namedWindow("Histogram_Img", WINDOW_NORMAL);
+	moveWindow("Histogram_Img", 800, 400);
+	imshow("Histogram_Img", HistogramImg);
+
+	namedWindow("MainStem_Img", WINDOW_NORMAL);
+	moveWindow("MainStem_Img", 900, 0);
+	imshow("MainStem_Img", MainStemImg);
+
+	namedWindow("Extract_Img", WINDOW_NORMAL);
+	moveWindow("Extract_Img", 900, 200);
+	imshow("Extract_Img", ExtractImg);
 
 	//namedWindow("Skeleton_Img", WINDOW_NORMAL);
 	//moveWindow("Skeleton_Img", 500, 700);
