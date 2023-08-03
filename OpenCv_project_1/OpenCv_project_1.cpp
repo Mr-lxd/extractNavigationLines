@@ -8,7 +8,7 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_111417.jpg";
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_112045.jpg";
 	Mat inputImage = imread(filename);
 
 	//// 获取图像尺寸
@@ -42,8 +42,12 @@ int main()
 	*/
 	Mat MorphImg;
 	int flag = 0;
-	if (CImgPro::NonZeroPixelRatio > 0.1) {
+	if (CImgPro::NonZeroPixelRatio > 0.1 && CImgPro::NonZeroPixelRatio < 0.2) {
 		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5);
+		flag = 1;
+	}
+	if (CImgPro::NonZeroPixelRatio >= 0.2) {
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 7);
 		flag = 1;
 	}
 
@@ -155,7 +159,14 @@ int main()
 	Mat maxPtsImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
 	
 
-	Mat HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts);
+	if (CImgPro::NonZeroPixelRatio < 0.2) {
+		Mat HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
+	}
+	else
+	{
+		Mat HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.5);
+	} 
+
 
 	myImgPro.retainMainStem(maxPts);
 	Mat MainStemImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
@@ -163,6 +174,12 @@ int main()
 	CImgPro::Cluster final_points;
 	Mat ExtractImg(MainStemImg.size(), CV_8UC1, Scalar(0));
 	myImgPro.processImageWithWindow(MainStemImg, ExtractImg, final_points, 16, 32);
+
+	//Mat LSImg = inputImage.clone();
+	//myImgPro.leastSquaresFit_edit(final_points, LSImg);
+
+
+	//myImgPro.SaveImg(filename, LSImg);
 
 	/*
 		目前来看，霍夫变换无法很好处理离群点和噪声
@@ -177,9 +194,9 @@ int main()
 		使用改进的最小二乘法处理ransac后的点得到进一步的优化
 		数据点规模很大的情况下会造成迭代次数过多，程序报错
 	*/
-	//float RANSAC_thresh = 0.5;
-	//Mat RansacImg = inputImage.clone();
-	//myImgPro.RANSAC(points, RANSAC_thresh, RansacImg);
+	float RANSAC_thresh = 0.2;
+	Mat RansacImg = inputImage.clone();
+	myImgPro.RANSAC(final_points, RANSAC_thresh, RansacImg);
 
 	//保存拟合图像
 	//myImgPro.SaveImg(filename, RansacImg);
@@ -241,6 +258,10 @@ int main()
 	moveWindow("Extract_Img", 900, 200);
 	imshow("Extract_Img", ExtractImg);
 
+	//namedWindow("LS_Img", WINDOW_NORMAL);
+	//moveWindow("LS_Img", 900, 400);
+	//imshow("LS_Img", LSImg);
+
 	//namedWindow("Skeleton_Img", WINDOW_NORMAL);
 	//moveWindow("Skeleton_Img", 500, 700);
 	//imshow("Skeleton_Img", skeletonImg);
@@ -249,9 +270,9 @@ int main()
 	////moveWindow("Hough_Img", 500, 1000);
 	////imshow("Hough_Img", HoughImg);
 
-	//namedWindow("Ransac_Img", WINDOW_NORMAL);
-	//moveWindow("Ransac_Img", 500, 1000);
-	//imshow("Ransac_Img", RansacImg);
+	namedWindow("Ransac_Img", WINDOW_NORMAL);
+	moveWindow("Ransac_Img", 500, 1000);
+	imshow("Ransac_Img", RansacImg);
 
 
 	waitKey(0);

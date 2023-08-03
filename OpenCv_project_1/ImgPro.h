@@ -32,7 +32,7 @@ class CImgPro
 		}Cluster;
 
 		Mat MedianBlur(Mat srcimg, int kernel_size);
-		Mat verticalProjection(Mat& img, const vector<Cluster>& clusters);
+		Mat verticalProjection(Mat& img, const vector<Cluster>& clusters, float cof);
 		Mat My_SUSAN(Mat& src, int thresh, int k, Cluster& points);
 		Mat OTSU(Mat src);
 		Mat MorphologicalOperation(Mat src, int kernel_size, int cycle_num);
@@ -52,10 +52,11 @@ class CImgPro
 		vector<Cluster> Cluster_Nearest(Mat& featureimage);
 		//void Hough_Line(vector<Cluster> clusters, Mat& outimg, vector<CCoorTran::LineParameter>& linepara);
 		//void Least_Square(vector<Cluster> clusters, Mat& outimg, vector<CCoorTran::LineParameter>& linepara);
-		void RANSAC(vector<Cluster>& points, float thresh, Mat& outimg);
+		void RANSAC(Cluster& points, float thresh, Mat& outimg);
 		vector<Cluster> Cluster_for_Ransac(Mat& featureimage, int areaHeight, int areaWidth, int areaDegree, int areaExtent);
 		vector<Cluster> Bisecting_Kmeans(Cluster& points, int k, float perCof);
 		void SaveImg(String filename, Mat& img);
+		void leastSquaresFit_edit(Cluster& cluster, Mat& outimg);
 
 	private:
 
@@ -75,7 +76,6 @@ class CImgPro
 		vector<int> regionQuery(Cluster& points, Point& point, double epsilon);
 		void expandCluster(Cluster& points, vector<int>& clusterIDs, int currentClusterID,
 			int pointIndex, double epsilon, int minPts, const vector<int>& neighbours);
-		void leastSquaresFit_edit(vector<Cluster>& points, Mat& outimg);
 
 		//	æ€¿‡≤Œ ˝
 		vector<Cluster> BaseCluster(Mat featureimage, int beginHeight, int areaHeight, int areaWidth);

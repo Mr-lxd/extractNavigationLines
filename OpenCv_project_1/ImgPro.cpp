@@ -818,7 +818,7 @@ void CImgPro::processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, 
 	}
 }
 
-Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters)
+Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters, float cof)
 {
 	vector<int> histogram(img.cols, 0);
 
@@ -844,7 +844,7 @@ Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters)
 	}
 
 	// Draw a horizontal line 
-	int horizontal_line_height = 0.8 * y_max;
+	int horizontal_line_height = cof * y_max;
 	//line(histogramImg, Point(0, horizontal_line_height), Point(histogramImg.cols - 1, horizontal_line_height), Scalar(255), 1);
 
 	// Find the x-coordinate of the intersection between the histogram and the horizontal line
@@ -1196,7 +1196,7 @@ Mat CImgPro::ClusterPointsDrawing(Mat& src, vector<Cluster>& points)
 	return outimg;
 }
 
-void CImgPro::RANSAC(vector<Cluster>& points, float thresh, Mat& outimg)
+void CImgPro::RANSAC(Cluster& cluster, float thresh, Mat& outimg)
 {
 	vector<float> dis;
 	vector<CImgPro::Cluster> inliers;		//定义存储类型为point的容器储存内点
@@ -1205,30 +1205,20 @@ void CImgPro::RANSAC(vector<Cluster>& points, float thresh, Mat& outimg)
 		double slope, intercept;
 	};
 
-	vector<Cluster> LeastSquarePoints;
 	int ID = 0;
-
-	//int avg_points = 0, sum_points = 0;
-	//for (int i = 0; i < points.size(); i++)
-	//{
-	//	sum_points += points[i].points.size();
-	//}
-	//avg_points = sum_points / points.size();
-
-
 	std::random_device rd;		//本地真随机数生成器
 	std::mt19937 gen(rd());		//伪随机数生成器,使用rd作为种子
-	for (int i = 0; i < points.size(); i++)
-	{
-		int index = 0, p1_ID = 0, p2_ID = 0, best_inliers = 0;
-		float bestSlope = 0.0, bestIntercept = 0.0;
 
-		float iterations = 0.0, ConfidenceLevel = 0.99, Probability = 2.0 / points[i].points.size();
-		iterations = log((1 - ConfidenceLevel)) / log((1 - pow(Probability, 2)));
-		for (int j = 0; j < 10000; j++)		//在该类中不断迭代
-		{
+	int index = 0, best_inliers = 0;
+	float bestSlope = 0.0, bestIntercept = 0.0;
+
+	float iterations = 0.0, ConfidenceLevel = 0.99, Probability = 2.0 / cluster.points.size();
+	iterations = log((1 - ConfidenceLevel)) / log((1 - pow(Probability, 2)));
+	for (int j = 0; j < iterations; j++)		//在该类中不断迭代
+	{
+		if (best_inliers <= cluster.points.size() / 2) {
 			// 随机选取两个不同的点 
-			std::uniform_int_distribution<> distrib(0, points[i].points.size()-1);		//整型分布对象distrib，其范围是[0, n]
+			uniform_int_distribution<> distrib(0, cluster.points.size()-1);		//整型分布对象distrib，其范围是[0, n]
 			int index1 = distrib(gen);
 			int index2 = distrib(gen);
 			//防止随机到同一索引
@@ -1236,8 +1226,8 @@ void CImgPro::RANSAC(vector<Cluster>& points, float thresh, Mat& outimg)
 			{
 				index2 = distrib(gen);
 			}
-			Point p1 = points[i].points[index1];
-			Point p2 = points[i].points[index2];
+			Point p1 = cluster.points[index1];
+			Point p2 = cluster.points[index2];
 
 			float slope = 0, intercept = 0;
 			if (p1.x==p2.x)
@@ -1252,7 +1242,7 @@ void CImgPro::RANSAC(vector<Cluster>& points, float thresh, Mat& outimg)
 
 			//计算该类中除p1p2点外其余点到直线的距离
 			float distance = 0;
-			for (auto p : points[i].points)		//范围for循环，一次迭代，通过迭代器p依次访问points[i]中的每一个元素
+			for (auto p : cluster.points)		//范围for循环，一次迭代，通过迭代器p依次访问points中的每一个元素
 			{
 				if (p != p1 && p != p2)
 				{
@@ -1271,8 +1261,6 @@ void CImgPro::RANSAC(vector<Cluster>& points, float thresh, Mat& outimg)
 			{
 				best_inliers = tempPoints.points.size();
 				ID = index;		//局内最大点集的索引
-				p1_ID = index1;
-				p2_ID = index2;
 				bestSlope = l.slope;
 				bestIntercept = l.intercept;
 			}
@@ -1280,16 +1268,15 @@ void CImgPro::RANSAC(vector<Cluster>& points, float thresh, Mat& outimg)
 			//dis.clear();
 			index++;
 		}
-
-		//Scalar color = CV_RGB(255, 255, 255);
-		//line(outimg, Point(-bestIntercept / bestSlope, 0), Point((outimg.rows - bestIntercept) / bestSlope, outimg.rows), color, 10, 8, 0);
-		LeastSquarePoints.push_back(inliers[ID]);
-		inliers.clear();
+		
 	}
+
+	//Scalar color = CV_RGB(255, 255, 255);
+	//line(outimg, Point(-bestIntercept / bestSlope, 0), Point((outimg.rows - bestIntercept) / bestSlope, outimg.rows), color, 10, 8, 0);
 
 	//该类迭代完成后对局内点最多的点集进行最小二乘法拟合
 	/*leastSquaresFit(LeastSquarePoints, outimg);*/
-	leastSquaresFit_edit(LeastSquarePoints, outimg);
+	leastSquaresFit_edit(inliers[ID], outimg);
 }
 
 vector<CImgPro::Cluster> CImgPro::ComparePoints(vector<Cluster>& points)
@@ -1860,22 +1847,22 @@ void CImgPro::expandCluster(Cluster& points, vector<int>& clusterIDs, int curren
 }
 
 //改进的最小二乘法，能够拟合垂直的直线
-void CImgPro::leastSquaresFit_edit(vector<Cluster>& points, Mat& outimg)
+void CImgPro::leastSquaresFit_edit(Cluster& cluster, Mat& outimg)
 {
 	//ax+by+c=0
-	for (int i = 0; i < points.size(); i++)
-	{
+	//for (int i = 0; i < points.size(); i++)
+	//{
 		double sumX = 0.0, sumY = 0.0, avgX = 0.0, avgY = 0.0;
-		for (auto p : points[i].points)
+		for (auto p : cluster.points)
 		{
 			sumX += p.x;
 			sumY += p.y;
 		}
-		avgX = sumX / points[i].points.size();
-		avgY = sumY / points[i].points.size();
+		avgX = sumX / cluster.points.size();
+		avgY = sumY / cluster.points.size();
 
 		double L_xx = 0.0, L_yy = 0.0, L_xy = 0.0;
-		for (auto p : points[i].points)
+		for (auto p : cluster.points)
 		{
 			L_xx += (p.x - avgX) * (p.x - avgX);
 			L_xy += (p.x - avgX) * (p.y - avgY);
@@ -1920,7 +1907,7 @@ void CImgPro::leastSquaresFit_edit(vector<Cluster>& points, Mat& outimg)
 			line(outimg, Point(-c / a, 0), Point((outimg.rows * (-b) - c) / a, outimg.rows), color, 10, 8, 0);
 		}
 		
-	}
+	//}
 }
 
 void CImgPro::SaveImg(String filename, Mat& img)
