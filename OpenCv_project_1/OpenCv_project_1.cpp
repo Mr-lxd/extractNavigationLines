@@ -8,7 +8,7 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_112045.jpg";
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_112212.jpg";
 	Mat inputImage = imread(filename);
 
 	//// 获取图像尺寸
@@ -42,6 +42,10 @@ int main()
 	*/
 	Mat MorphImg;
 	int flag = 0;
+	if (CImgPro::NonZeroPixelRatio > 0.06 && CImgPro::NonZeroPixelRatio <= 0.1) {
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 2);
+		flag = 1;
+	}
 	if (CImgPro::NonZeroPixelRatio > 0.1 && CImgPro::NonZeroPixelRatio < 0.2) {
 		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5);
 		flag = 1;
@@ -64,19 +68,17 @@ int main()
 	{
 		ConnectImg = myImgPro.EightConnectivity(MorphImg, cof);
 	}
-	
-	
+
+
+	Mat firstHistorImg = myImgPro.verticalProjectionForCenterX(CImgPro::firstHistogram);
 
 	/*
 		骨架化，耗费时间长
 	*/
 	//CImgPro::Cluster skeleton_points;
 	//Mat skeletonImg = myImgPro.skeletonization(ConnectImg, skeleton_points);
+	
 
-
-	/*
-		
-	*/
 	//int thresh = 10, k = 18;		//k为响应阈值的比例系数
 	//CImgPro::Cluster susan_points;
 	//Mat TempImg = myImgPro.My_SUSAN(ConnectImg, thresh, k, susan_points);
@@ -147,39 +149,38 @@ int main()
 	/*
 		使用dbscan的思想
 	*/
-	int imgCenterX = inputImage.cols / 2;
+	//int imgCenterX = inputImage.cols / 2;
 	vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(reduce_points, 110, 50);
-	//vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(reduce_points, 40, 30);
-	vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, imgCenterX, 0.65);	
+	vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, CImgPro::centerX, 0.65);	
 	Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
 	Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
 
 
 	vector<CImgPro::Cluster> maxPts = myImgPro.MaxPoints(second_cluster_points);
 	Mat maxPtsImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
-	
 
-	if (CImgPro::NonZeroPixelRatio < 0.2) {
-		Mat HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
+
+	Mat HistogramImg;
+	if (CImgPro::NonZeroPixelRatio <= 0.07) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 1.05);
 	}
-	else
-	{
-		Mat HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.5);
-	} 
+	if (CImgPro::NonZeroPixelRatio < 0.2 && CImgPro::NonZeroPixelRatio > 0.07) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
+	}
+	if (CImgPro::NonZeroPixelRatio >= 0.2) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.5);
+	}
 
 
 	myImgPro.retainMainStem(maxPts);
 	Mat MainStemImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
 
+
 	CImgPro::Cluster final_points;
 	Mat ExtractImg(MainStemImg.size(), CV_8UC1, Scalar(0));
 	myImgPro.processImageWithWindow(MainStemImg, ExtractImg, final_points, 16, 32);
 
-	//Mat LSImg = inputImage.clone();
-	//myImgPro.leastSquaresFit_edit(final_points, LSImg);
 
-
-	//myImgPro.SaveImg(filename, LSImg);
 
 	/*
 		目前来看，霍夫变换无法很好处理离群点和噪声
@@ -194,18 +195,19 @@ int main()
 		使用改进的最小二乘法处理ransac后的点得到进一步的优化
 		数据点规模很大的情况下会造成迭代次数过多，程序报错
 	*/
-	float RANSAC_thresh = 0.2;
 	Mat RansacImg = inputImage.clone();
-	myImgPro.RANSAC(final_points, RANSAC_thresh, RansacImg);
+	myImgPro.RANSAC(final_points, 0.135, RansacImg);
+	//myImgPro.leastSquaresFit_edit(final_points, RansacImg);
+
 
 	//保存拟合图像
-	//myImgPro.SaveImg(filename, RansacImg);
+	myImgPro.SaveImg(filename, RansacImg);
 
 
 
-	namedWindow("feature_Image", WINDOW_NORMAL);
-	moveWindow("feature_Image", 0, 0);		// 设置第一个窗口的位置
-	imshow("feature_Image", featureImg);
+	//namedWindow("feature_Image", WINDOW_NORMAL);
+	//moveWindow("feature_Image", 0, 0);		// 设置第一个窗口的位置
+	//imshow("feature_Image", featureImg);
 
 	//namedWindow("ExG_Image", WINDOW_NORMAL);
 	//moveWindow("ExG_Image", 0, 10);		
@@ -220,7 +222,7 @@ int main()
 	imshow("Susan_Img", TempImg);*/
 
 	namedWindow("OTSU_Img", WINDOW_NORMAL);
-	moveWindow("OTSU_Img", 500, 500);		 
+	moveWindow("OTSU_Img", 500, 500);
 	imshow("OTSU_Img",OtsuImg);
 
 	if (flag == 1) {
@@ -233,6 +235,10 @@ int main()
 	namedWindow("Connect_Img", WINDOW_NORMAL);
 	moveWindow("Connect_Img", 0, 550);
 	imshow("Connect_Img", ConnectImg);
+
+	namedWindow("firstHistor_Img", WINDOW_NORMAL);
+	moveWindow("firstHistor_Img", 0, 300);
+	imshow("firstHistor_Img", firstHistorImg);
 
 	namedWindow("F_Cluster_Img", WINDOW_NORMAL);
 	moveWindow("F_Cluster_Img", 700, 0);
@@ -271,7 +277,7 @@ int main()
 	////imshow("Hough_Img", HoughImg);
 
 	namedWindow("Ransac_Img", WINDOW_NORMAL);
-	moveWindow("Ransac_Img", 500, 1000);
+	moveWindow("Ransac_Img", 500, 400);
 	imshow("Ransac_Img", RansacImg);
 
 

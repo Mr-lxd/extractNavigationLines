@@ -6,6 +6,8 @@
 #include<opencv2/imgproc/types_c.h>
 
 float CImgPro::NonZeroPixelRatio = 0.0f;
+int CImgPro::centerX = -1;
+vector<int>  CImgPro::firstHistogram(4096, 0);
 
 //////////////////////////////////////////////////////////////////////
 // ExG归一化
@@ -744,7 +746,11 @@ Mat CImgPro::EightConnectivity(Mat& img, float cof)
 		for (int j = 0; j < labels.cols; j++) {
 			int label = labels.at<int>(i, j); // 获取当前像素的标记
 			if (label > 0 && stats.at<int>(label, CC_STAT_AREA) >= mean_area * cof) { // 判断当前像素所属的连通组件的面积是否大于或等于平均面积
-				output.at<uchar>(i, j) = 255; // 将output中对应的像素设置为255				
+				output.at<uchar>(i, j) = 255; // 将output中对应的像素设置为255
+				if (j >= 0.3 * labels.cols && j <= 0.7 * labels.cols) {//划定区域处理不符合正态分布的图像112212
+					firstHistogram[j]++;
+				}
+				
 			}
 		}
 	}
@@ -821,7 +827,7 @@ void CImgPro::processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, 
 Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters, float cof)
 {
 	vector<int> histogram(img.cols, 0);
-
+	
 	for (auto& c : clusters) {
 		for (auto& p : c.points) {
 			histogram[p.x]++;			
@@ -861,6 +867,29 @@ Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters, float
 			}
 		}
 	}
+
+	return histogramImg;
+}
+
+Mat CImgPro::verticalProjectionForCenterX(const vector<int>& histogram)
+{
+	int y_max = -1;
+	for (int i = 0; i < histogram.size(); i++)
+	{
+		if (histogram[i] > y_max) {
+			y_max = histogram[i];
+			centerX = i;
+		}
+	}
+
+
+	Size size(histogram.size(), 1.2 * y_max);
+	Mat histogramImg(size, CV_8UC1, Scalar(0));
+	for (int i = 0; i < histogram.size(); i++) {
+		// Draw the histogram line
+		line(histogramImg, Point(i, 1.2 * y_max), Point(i, 1.2 * y_max - histogram[i]), Scalar(255), 1);
+	}
+
 
 	return histogramImg;
 }
@@ -1215,67 +1244,71 @@ void CImgPro::RANSAC(Cluster& cluster, float thresh, Mat& outimg)
 	float iterations = 0.0, ConfidenceLevel = 0.99, Probability = 2.0 / cluster.points.size();
 	iterations = log((1 - ConfidenceLevel)) / log((1 - pow(Probability, 2)));
 	for (int j = 0; j < iterations; j++)		//在该类中不断迭代
-	{
-		if (best_inliers <= cluster.points.size() / 2) {
-			// 随机选取两个不同的点 
-			uniform_int_distribution<> distrib(0, cluster.points.size()-1);		//整型分布对象distrib，其范围是[0, n]
-			int index1 = distrib(gen);
-			int index2 = distrib(gen);
-			//防止随机到同一索引
-			while (index2 == index1)
-			{
-				index2 = distrib(gen);
-			}
-			Point p1 = cluster.points[index1];
-			Point p2 = cluster.points[index2];
-
-			float slope = 0, intercept = 0;
-			if (p1.x==p2.x)
-			{
-				slope = 9999999;
-			}
-			else {
-				slope = (float)(p2.y - p1.y) / (p2.x - p1.x);
-			}
-			intercept = p1.y - slope * p1.x;
-			Line l = { slope, intercept };
-
-			//计算该类中除p1p2点外其余点到直线的距离
-			float distance = 0;
-			for (auto p : cluster.points)		//范围for循环，一次迭代，通过迭代器p依次访问points中的每一个元素
-			{
-				if (p != p1 && p != p2)
-				{
-					distance = abs(p.y - l.slope * p.x - l.intercept) / sqrt(1 + l.intercept * l.intercept);
-					//判断局内点
-					if (distance < thresh)
-					{
-						tempPoints.points.push_back(p);
-						dis.push_back(distance);
-					}
-				}
-			}				
-			inliers.push_back(tempPoints);
-				
-			if (tempPoints.points.size()>best_inliers)
-			{
-				best_inliers = tempPoints.points.size();
-				ID = index;		//局内最大点集的索引
-				bestSlope = l.slope;
-				bestIntercept = l.intercept;
-			}
-			tempPoints.points.clear();
-			//dis.clear();
-			index++;
+	{		
+		// 随机选取两个不同的点 
+		uniform_int_distribution<> distrib(0, cluster.points.size()-1);		//整型分布对象distrib，其范围是[0, n]
+		int index1 = distrib(gen);
+		int index2 = distrib(gen);
+		//防止随机到同一索引
+		while (index2 == index1)
+		{
+			index2 = distrib(gen);
 		}
+		Point p1 = cluster.points[index1];
+		Point p2 = cluster.points[index2];
+
+		float slope = 0, intercept = 0;
+		if (p1.x==p2.x)
+		{
+			slope = 9999999;
+		}
+		else {
+			slope = (float)(p2.y - p1.y) / (p2.x - p1.x);
+		}
+		intercept = p1.y - slope * p1.x;
+		Line l = { slope, intercept };
+
+		//计算该类中除p1p2点外其余点到直线的距离
+		float distance = 0;
+		for (auto p : cluster.points)		//范围for循环，一次迭代，通过迭代器p依次访问points中的每一个元素
+		{
+			if (p != p1 && p != p2)
+			{
+				distance = abs(p.y - l.slope * p.x - l.intercept) / sqrt(1 + l.intercept * l.intercept);
+				//判断局内点
+				if (distance < thresh)
+				{
+					tempPoints.points.push_back(p);
+					dis.push_back(distance);
+				}
+			}
+		}				
+		inliers.push_back(tempPoints);
+				
+		if (tempPoints.points.size()>best_inliers)
+		{
+			best_inliers = tempPoints.points.size();
+			ID = index;		//局内最大点集的索引
+			bestSlope = l.slope;
+			bestIntercept = l.intercept;
+
+			//更新内点比例和迭代次数
+			Probability = (float)best_inliers / cluster.points.size(); //根据当前最佳假设的内点数计算内点比例
+			iterations = log((1 - ConfidenceLevel)) / log((1 - pow(Probability, 2))); //根据公式更新迭代次数
+			iterations = 100 * iterations;
+			j = 0; //重置迭代计数器
+		}
+		tempPoints.points.clear();
+		dis.clear();
+		index++;
+		
 		
 	}
 
-	//Scalar color = CV_RGB(255, 255, 255);
-	//line(outimg, Point(-bestIntercept / bestSlope, 0), Point((outimg.rows - bestIntercept) / bestSlope, outimg.rows), color, 10, 8, 0);
+	/*Scalar color = CV_RGB(255, 0, 0);
+	line(outimg, Point(-bestIntercept / bestSlope, 0), Point((outimg.rows - bestIntercept) / bestSlope, outimg.rows), color, 10, 8, 0);*/
 
 	//该类迭代完成后对局内点最多的点集进行最小二乘法拟合
-	/*leastSquaresFit(LeastSquarePoints, outimg);*/
 	leastSquaresFit_edit(inliers[ID], outimg);
 }
 
@@ -1660,7 +1693,7 @@ vector<CImgPro::Cluster> CImgPro::firstClusterBaseOnDbscan(Cluster& points, floa
 
 vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX, float cof)
 {
-	//imageCenterX是图像中线的x坐标
+	//imageCenterX是作物行中间行的x坐标
 	vector<float> centroidDistances;
 	vector<float> centroidXCoords;
 	for (Cluster& cluster : cluster_points) {
@@ -1923,7 +1956,7 @@ void CImgPro::SaveImg(String filename, Mat& img)
 	std::string filename_without_extension = basename.substr(0, basename.find_last_of("."));
 
 	// 构造要保存的文件名及路径
-	std::string outfilename = "D:\\ProcessedImg\\" + filename_without_extension + ".jpg";
+	std::string outfilename = "D:\\ProcessedImg2.0\\" + filename_without_extension + ".jpg";
 
 	// 保存处理后的图像
 	cv::imwrite(outfilename, img);

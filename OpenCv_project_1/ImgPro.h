@@ -18,6 +18,8 @@ class CImgPro
 {
 	public:
 		static float NonZeroPixelRatio;
+		static int centerX;
+		static vector<int> firstHistogram;
 
 		typedef struct
 		{
@@ -33,6 +35,7 @@ class CImgPro
 
 		Mat MedianBlur(Mat srcimg, int kernel_size);
 		Mat verticalProjection(Mat& img, const vector<Cluster>& clusters, float cof);
+		Mat verticalProjectionForCenterX(const vector<int>& histogram);
 		Mat My_SUSAN(Mat& src, int thresh, int k, Cluster& points);
 		Mat OTSU(Mat src);
 		Mat MorphologicalOperation(Mat src, int kernel_size, int cycle_num);
@@ -57,6 +60,7 @@ class CImgPro
 		vector<Cluster> Bisecting_Kmeans(Cluster& points, int k, float perCof);
 		void SaveImg(String filename, Mat& img);
 		void leastSquaresFit_edit(Cluster& cluster, Mat& outimg);
+
 
 	private:
 
