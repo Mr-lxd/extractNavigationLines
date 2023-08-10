@@ -1,5 +1,4 @@
 #include <iostream>
-
 #include"ImgPro.h"
 
 using namespace std;
@@ -8,7 +7,7 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_112212.jpg";
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_112045.jpg";
 	Mat inputImage = imread(filename);
 
 	//// 获取图像尺寸
@@ -50,10 +49,15 @@ int main()
 		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5);
 		flag = 1;
 	}
-	if (CImgPro::NonZeroPixelRatio >= 0.2) {
+	if (CImgPro::NonZeroPixelRatio >= 0.2 && CImgPro::NonZeroPixelRatio < 0.4) {
 		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 7);
 		flag = 1;
 	}
+	if (CImgPro::NonZeroPixelRatio >= 0.4) {
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 9);
+		flag = 1;
+	}
+
 
 
 	/*
@@ -102,26 +106,6 @@ int main()
 	Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, points);
 	*/
 
-	/*
-	vector<int> clusters = myImgPro.spectralClustering(susan_points, 3, 1000.0);
-	// 创建一个簇向量，其中每个元素是包含属于该簇的点的向量
-	vector<vector<Point>> clusters_points(3);
-
-	// 遍历所有点，将它们添加到相应的簇中
-	for (size_t i = 0; i < clusters.size(); ++i) {
-		int cluster_label = clusters[i];
-		clusters_points[cluster_label].push_back(susan_points.points[i]);
-	}
-
-	// 输出每个簇中的点
-	for (size_t i = 0; i < clusters_points.size(); ++i) {
-		cout << "Cluster " << i << ":" << endl;
-		for (const Point& p : clusters_points[i]) {
-			cout << "(" << p.x << ", " << p.y << ")" << endl;
-		}
-	}
-	*/
-
 
 	//高斯混合模型的协方差矩阵类型(对应不同的数据形状)，球状、对角、完全、等方位
 	//ml::EM::Types covarianceType = ml::EM::Types::COV_MAT_GENERIC; //这里使用完全协方差矩阵，适用于数据中存在明显的相关性的情况
@@ -149,7 +133,6 @@ int main()
 	/*
 		使用dbscan的思想
 	*/
-	//int imgCenterX = inputImage.cols / 2;
 	vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(reduce_points, 110, 50);
 	vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, CImgPro::centerX, 0.65);	
 	Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
@@ -157,19 +140,27 @@ int main()
 
 
 	vector<CImgPro::Cluster> maxPts = myImgPro.MaxPoints(second_cluster_points);
+	vector<CImgPro::Cluster> maxPts_temp = maxPts;
 	Mat maxPtsImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
 
 
 	Mat HistogramImg;
-	if (CImgPro::NonZeroPixelRatio <= 0.07) {
-		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 1.05);
-	}
-	if (CImgPro::NonZeroPixelRatio < 0.2 && CImgPro::NonZeroPixelRatio > 0.07) {
-		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
-	}
-	if (CImgPro::NonZeroPixelRatio >= 0.2) {
-		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.5);
-	}
+	//if (CImgPro::NonZeroPixelRatio <= 0.1) {
+	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.9);
+	//}
+	//if (CImgPro::NonZeroPixelRatio < 0.2 && CImgPro::NonZeroPixelRatio > 0.1) {
+	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
+	//}
+	//if (CImgPro::NonZeroPixelRatio < 0.3 && CImgPro::NonZeroPixelRatio >= 0.2) {
+	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.5);
+	//}
+	//if (CImgPro::NonZeroPixelRatio >= 0.3) {
+	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.4);
+	//}
+	double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -8.67, 0.354);
+	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, tsd);
+
+
 
 
 	myImgPro.retainMainStem(maxPts);
@@ -196,8 +187,16 @@ int main()
 		数据点规模很大的情况下会造成迭代次数过多，程序报错
 	*/
 	Mat RansacImg = inputImage.clone();
-	myImgPro.RANSAC(final_points, 0.135, RansacImg);
-	//myImgPro.leastSquaresFit_edit(final_points, RansacImg);
+	if (CImgPro::NonZeroPixelRatio >= 0.2) {
+		myImgPro.RANSAC(final_points, 0.09, RansacImg);
+	}
+	else
+	{
+		myImgPro.RANSAC(final_points, 0.13, RansacImg);
+	}
+	
+
+	//Mat ProjectedImg = myImgPro.projectedImg(maxPtsImg, maxPts_temp, CImgPro::firstSlope);
 
 
 	//保存拟合图像
@@ -209,19 +208,19 @@ int main()
 	//moveWindow("feature_Image", 0, 0);		// 设置第一个窗口的位置
 	//imshow("feature_Image", featureImg);
 
-	//namedWindow("ExG_Image", WINDOW_NORMAL);
-	//moveWindow("ExG_Image", 0, 10);		
-	//imshow("ExG_Image", ExGImage);
+	/*namedWindow("ExG_Image", WINDOW_NORMAL);
+	moveWindow("ExG_Image", 0, 10);		
+	imshow("ExG_Image", ExGImage);*/
 
-	//namedWindow("MedianBlur_Img", WINDOW_NORMAL);
-	//moveWindow("MedianBlur_Img",500, 0);		
-	//imshow("MedianBlur_Img", MedianBlurImg);
+	/*namedWindow("MedianBlur_Img", WINDOW_NORMAL);
+	moveWindow("MedianBlur_Img",500, 0);		
+	imshow("MedianBlur_Img", MedianBlurImg);*/
 
 	/*namedWindow("Susan_Img", WINDOW_NORMAL);
 	moveWindow("Susan_Img", 0, 500);
 	imshow("Susan_Img", TempImg);*/
 
-	namedWindow("OTSU_Img", WINDOW_NORMAL);
+	/*namedWindow("OTSU_Img", WINDOW_NORMAL);
 	moveWindow("OTSU_Img", 500, 500);
 	imshow("OTSU_Img",OtsuImg);
 
@@ -229,7 +228,7 @@ int main()
 		namedWindow("Morph_Img", WINDOW_NORMAL);
 		moveWindow("Morph_Img", 0, 1000);
 		imshow("Morph_Img", MorphImg);
-	}
+	}*/
 	
 
 	namedWindow("Connect_Img", WINDOW_NORMAL);
@@ -280,6 +279,9 @@ int main()
 	moveWindow("Ransac_Img", 500, 400);
 	imshow("Ransac_Img", RansacImg);
 
+	/*namedWindow("Projected_Img", WINDOW_NORMAL);
+	moveWindow("Projected_Img", 400, 400);
+	imshow("Projected_Img", ProjectedImg);*/
 
 	waitKey(0);
 

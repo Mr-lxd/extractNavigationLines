@@ -17,7 +17,7 @@ using namespace Eigen;
 class CImgPro
 {
 	public:
-		static float NonZeroPixelRatio;
+		static float NonZeroPixelRatio, firstSlope;
 		static int centerX;
 		static vector<int> firstHistogram;
 
@@ -33,14 +33,16 @@ class CImgPro
 			char state;
 		}Cluster;
 
+		double thresholdingSigmoid(double NonZeroPixelRatio, double k, double x);
 		Mat MedianBlur(Mat srcimg, int kernel_size);
-		Mat verticalProjection(Mat& img, const vector<Cluster>& clusters, float cof);
+		Mat verticalProjection(Mat& img, const vector<Cluster>& clusters, double cof);
 		Mat verticalProjectionForCenterX(const vector<int>& histogram);
 		Mat My_SUSAN(Mat& src, int thresh, int k, Cluster& points);
 		Mat OTSU(Mat src);
 		Mat MorphologicalOperation(Mat src, int kernel_size, int cycle_num);
 		Mat ClusterPointsDrawing(Mat& src, vector<Cluster>& points);
 		Mat applyPCA(Cluster& cluster, int num_components);
+		Mat projectedImg(Mat& img, vector<Cluster>& clusters, float slope);
 		void processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, int windowWidth, int windowHeight);
 		void averageCoordinates(Cluster& points);
 		Mat EightConnectivity(Mat& img, float cof);
@@ -48,13 +50,10 @@ class CImgPro
 		vector<Cluster> Gaussian_Mixture_Model(Cluster& points, int numCluster, ml::EM::Types covarianceType);
 		vector<Cluster> firstClusterBaseOnDbscan(Cluster& points, float epsilon, int minPts);
 		vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX, float cof);
-		vector<int> spectralClustering(Cluster& points, int k, double sigma);
 		vector<Cluster> MaxPoints(vector<Cluster>& clusters);
 		void retainMainStem(vector<Cluster>& clusters);
 		void NormalizedExG(Mat srcimg, Mat& outimg);
 		vector<Cluster> Cluster_Nearest(Mat& featureimage);
-		//void Hough_Line(vector<Cluster> clusters, Mat& outimg, vector<CCoorTran::LineParameter>& linepara);
-		//void Least_Square(vector<Cluster> clusters, Mat& outimg, vector<CCoorTran::LineParameter>& linepara);
 		void RANSAC(Cluster& points, float thresh, Mat& outimg);
 		vector<Cluster> Cluster_for_Ransac(Mat& featureimage, int areaHeight, int areaWidth, int areaDegree, int areaExtent);
 		vector<Cluster> Bisecting_Kmeans(Cluster& points, int k, float perCof);

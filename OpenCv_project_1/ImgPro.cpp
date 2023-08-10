@@ -5,7 +5,7 @@
 #include <random> 
 #include<opencv2/imgproc/types_c.h>
 
-float CImgPro::NonZeroPixelRatio = 0.0f;
+float CImgPro::NonZeroPixelRatio = 0.0f, CImgPro::firstSlope = -9999;
 int CImgPro::centerX = -1;
 vector<int>  CImgPro::firstHistogram(4096, 0);
 
@@ -18,7 +18,6 @@ void CImgPro::NormalizedExG(Mat srcimg, Mat& outimg)
 	unsigned char* in;		// 输入图像数据指针
 	unsigned char* out;		// 输出图像数据指针
 	unsigned char R, G, B;		// 彩色图像每个像素的R,G,B通道值
-	//CvScalar s;
 	uchar temp1;		// 临时变量，用于存储计算结果
 	float r, g, b;		// 归一化指数植被指数的三个分量：红色、绿色和蓝色
 	for (int i = 0; i < srcimg.rows; i++)
@@ -46,17 +45,18 @@ void CImgPro::NormalizedExG(Mat srcimg, Mat& outimg)
 			out[j] = temp1;
 
 
-			//改进的 ExG-ExR，目前看不好用
-			//float ExG = 2*G - R - B;
-			//float ExR = 1.4*R - G;
-			//if (G>R && G>B && ExG - ExR > 0)
-			//{
-			//		out[j] = ExG - ExR;								
-			//}
-			//else
-			//{
-			//	out[j] = 0;
-			//}
+			//改进的 ExG-ExR，目前看不好用，对绿色明显的作物效果不行
+			/*float ExG = 2*G - R - B;
+			float ExR = 1.4*R - G;
+			if (G>R && G>B && ExG - ExR > 0)
+			{
+					out[j] = ExG - ExR;								
+			}
+			else
+			{
+				out[j] = 0;
+			}*/
+
 		}
 	}
 }
@@ -548,6 +548,20 @@ float CImgPro::calculateNonZeroPixelRatio(Mat& img)
 	return ratio;
 }
 
+double CImgPro::thresholdingSigmoid(double NonZeroPixelRatio, double k, double x)
+{
+	//threshold = 1 / (1 + exp(-k * (NonZeroPixelRatio - x0)))
+	double exp_part = exp(-k * (NonZeroPixelRatio - x));
+	
+	double numerator = 1;
+	
+	double denominator = 1 + exp_part;
+	
+	double result = numerator / denominator;
+	
+	return result;
+}
+
 int CImgPro::calculate_x(Point p, float k, int outimg_rows)
 {
 	// 根据直线方程y = kx + b，求出b的值
@@ -824,7 +838,7 @@ void CImgPro::processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, 
 	}
 }
 
-Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters, float cof)
+Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters, double cof)
 {
 	vector<int> histogram(img.cols, 0);
 	
@@ -849,7 +863,7 @@ Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters, float
 		line(histogramImg, Point(i, 1.2 * y_max), Point(i, 1.2 * y_max - histogram[i]), Scalar(255), 1);
 	}
 
-	// Draw a horizontal line 
+	// Draw a horizontal line for thresholding
 	int horizontal_line_height = cof * y_max;
 	//line(histogramImg, Point(0, horizontal_line_height), Point(histogramImg.cols - 1, horizontal_line_height), Scalar(255), 1);
 
@@ -1094,7 +1108,7 @@ Mat CImgPro::OTSU(Mat src)
 		for (int j = 0; j < src.cols; j++)
 		{
 			//前景部分
-			if (src.at<uchar>(i, j) > thresh)
+			if (src.at<uchar>(i, j) > 0.8 * thresh)//降低阈值以便偏暗的绿色不被滤除
 			{
 				OtsuImg.at<uchar>(i, j) = 255;
 				nonZeroPixelCount++;
@@ -1591,43 +1605,6 @@ vector<CImgPro::Cluster> CImgPro::Bisecting_Kmeans(Cluster& points, int k, float
 	return clusters;
 }
 
-vector<int> CImgPro::spectralClustering(Cluster& points, int k, double sigma)
-{
-	// 计算相似矩阵
-	Mat W = computeSimilarityMatrix(points, sigma);
-	// 计算度矩阵
-	Mat D = Mat::zeros(W.size(), CV_64FC1);
-	for (int i = 0; i < W.rows; i++) {
-		double sum = 0.0;
-		for (int j = 0; j < W.cols; j++) {
-			sum += W.at<double>(i, j);
-		}
-		D.at<double>(i, i) = sum;
-	}
-	// 计算拉普拉斯矩阵
-	Mat mat_L = D - W;
-	MatrixXd L = Map<MatrixXd>(mat_L.ptr<double>(), mat_L.rows, mat_L.cols);
-	// 计算特征向量
-	EigenSolver<MatrixXd> es(L);
-	MatrixXd V = es.eigenvectors().real();
-	// 对特征向量进行K-Means聚类
-	Mat samples(V.rows(), V.cols(), CV_32FC1);
-	for (int i = 0; i < V.rows(); i++) {
-		for (int j = 0; j < V.cols(); j++) {
-			samples.at<float>(i, j) = static_cast<float>(V(i, j));
-		}
-	}
-	Mat labels;
-	Mat centers;
-	kmeans(samples, k, labels, TermCriteria(TermCriteria::EPS + TermCriteria::COUNT, 20, 1.0), 5, KMEANS_PP_CENTERS, centers);
-	// 将聚类结果转换为vector<int>
-	vector<int> clusters(points.points.size());
-	for (int i = 0; i < labels.rows; i++) {
-		clusters[i] = labels.at<int>(i);
-	}
-	return clusters;
-}
-
 vector<CImgPro::Cluster> CImgPro::Gaussian_Mixture_Model(Cluster& points, int numCluster, ml::EM::Types covarianceType)
 {
 	int sampleCount = points.points.size();
@@ -1940,7 +1917,26 @@ void CImgPro::leastSquaresFit_edit(Cluster& cluster, Mat& outimg)
 			line(outimg, Point(-c / a, 0), Point((outimg.rows * (-b) - c) / a, outimg.rows), color, 10, 8, 0);
 		}
 		
+		firstSlope = (float)-a / b;
 	//}
+}
+
+Mat CImgPro::projectedImg(Mat& img, vector<Cluster>& clusters, float slope)
+{
+	// 计算投影方向
+	cv::Mat projected_image = cv::Mat::zeros(img.rows, img.cols, CV_8U);
+
+
+	for (auto& c : clusters) {
+		for (auto& p : c.points) {
+			int projected_x = p.x + -1/slope * p.y;
+			if (projected_x >= 0 && projected_x < img.cols) {
+				projected_image.at<uchar>(p.y, projected_x) = 255;
+			}
+		}
+	}
+
+	return projected_image;
 }
 
 void CImgPro::SaveImg(String filename, Mat& img)
