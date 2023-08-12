@@ -10,24 +10,25 @@ int CImgPro::centerX = -1;
 vector<int>  CImgPro::firstHistogram(4096, 0);
 
 //////////////////////////////////////////////////////////////////////
-// ExG归一化
+// ExG
 //////////////////////////////////////////////////////////////////////
-void CImgPro::NormalizedExG(Mat srcimg, Mat& outimg)
+void CImgPro::NormalizedExG(Mat& srcimg, Mat& outimg)
 {
-	cvtColor(srcimg, outimg, COLOR_RGB2GRAY);		// 将输入图像转换为灰度图像
-	unsigned char* in;		// 输入图像数据指针
-	unsigned char* out;		// 输出图像数据指针
-	unsigned char R, G, B;		// 彩色图像每个像素的R,G,B通道值
-	uchar temp1;		// 临时变量，用于存储计算结果
-	float r, g, b;		// 归一化指数植被指数的三个分量：红色、绿色和蓝色
+	cvtColor(srcimg, outimg, COLOR_RGB2GRAY);		// convert input image to gray image
+	unsigned char* in;		// input image pointer
+	unsigned char* out;		
+	unsigned char R, G, B;
+	uchar temp1;		
+	float r, g, b;		// The normalized difference vegetation index
 	for (int i = 0; i < srcimg.rows; i++)
 	{
-		//定位到第i行数据的首地址(指针)，获取当前行的输入图像和输出图像数据指针
-		in = (unsigned char*)(srcimg.data + i * srcimg.step);		// data指向图像数据的首地址，而step表示每行数据所占用的字节数
+		//Obtain the base address of the data located in the i-th row, and retrieve the pointers to the input and output image data of the current row
+		//The variable "data" points to the starting address of the image data, variable "step" represents the number of bytes occupied by each row of data
+		in = (unsigned char*)(srcimg.data + i * srcimg.step);		
 		out = (unsigned char*)(outimg.data + i * outimg.step);
 		for (int j = 0; j < srcimg.cols; j++)
 		{
-			//读取每行第j个像素的通道值，彩色图像按照BGR顺序存储，即每个像素的第0个字节是蓝色（Blue）通道的值，第1个字节是绿色（Green）通道的值，第2个字节是红色（Red）通道的值
+			//Retrieve the channel value of the j-th pixel in each row.
 			B = in[3 * j];
 			G = in[3 * j + 1];
 			R = in[3 * j + 2];
@@ -35,9 +36,9 @@ void CImgPro::NormalizedExG(Mat srcimg, Mat& outimg)
 			g = (float)G / (B + G + R);
 			r = (float)R / (B + G + R);
 
-			if (2 * g - r - b < 0)		//小于0较暗，直接调整为0
+			if (2 * g - r - b < 0)		
 				temp1 = 0;
-			else if (2 * g - b - r > 1)		//大于1较亮，调整为最大值255
+			else if (2 * g - b - r > 1)	
 				temp1 = 255;
 			else
 				temp1 = (2 * g - b - r) * 255;
@@ -45,7 +46,7 @@ void CImgPro::NormalizedExG(Mat srcimg, Mat& outimg)
 			out[j] = temp1;
 
 
-			//改进的 ExG-ExR，目前看不好用，对绿色明显的作物效果不行
+			//The current results of the ExG-ExR method are not satisfactory, particularly in cases where the crops have a significant green component.
 			/*float ExG = 2*G - R - B;
 			float ExR = 1.4*R - G;
 			if (G>R && G>B && ExG - ExR > 0)
@@ -527,7 +528,7 @@ float CImgPro::euclidean_distance(Point a, Point b)
 {
 	float dx = a.x - b.x;
 	float dy = a.y - b.y;
-	return sqrt(pow(dx, 2) + pow(dy, 2));		//放大x方向距离缩小y方向距离
+	return sqrt(pow(dx, 2) + pow(dy, 2));
 }
 
 float CImgPro::calculateNonZeroPixelRatio(Mat& img)
@@ -570,53 +571,6 @@ int CImgPro::calculate_x(Point p, float k, int outimg_rows)
 	int x = (outimg_rows - b) / k;
 	// 返回x
 	return x;
-}
-
-void  CImgPro::averageCoordinates(Cluster& points)
-{
-	// 创建一个用于存储结果的向量
-	vector<Point> result;
-	// 临时变量，用于累加相同y值的坐标点的x值
-	int tempSum = 0;
-	// 计数器，用于统计相同y值的坐标点的数量
-	int count = 0;
-
-	// 遍历坐标列表
-	for (size_t i = 0; i < points.points.size(); i++) {
-		// 如果是第一个坐标点或者当前坐标点的y值与前一个坐标点的y值相同
-		if (i == 0 || points.points[i].y == points.points[i - 1].y) {
-
-			if (i == 0 || (abs(points.points[i].x - points.points[i - 1].x)) < 5) {
-				// 将当前坐标点的x值累加到临时变量中
-				tempSum += points.points[i].x;
-				// 增加相同y值的坐标点的数量
-				count++;
-			}
-			
-
-			if (count == 2) {
-				// 计算相邻两个坐标点的平均值
-				float averageX = tempSum / 2;
-				// 创建新的坐标点并添加到结果向量中
-				result.push_back(Point(averageX, points.points[i].y));
-				tempSum = 0;
-				count = 0;
-			}
-			else {
-				result.push_back(Point(points.points[i].x, points.points[i].y));
-			}
-		}
-		else {
-			// 如果遇到不同y值的坐标点
-
-			// 重置临时变量和计数器，用于处理下一组相同y值的坐标点
-			tempSum = points.points[i].x;
-			count = 1;
-		}
-	}
-
-	points.points = result;
-
 }
 
 Point CImgPro::centroid(vector<Point>& points)
@@ -741,27 +695,27 @@ Mat CImgPro::MedianBlur(Mat srcimg, int kernel_size)
 
 Mat CImgPro::EightConnectivity(Mat& img, float cof)
 {
-	Mat labels; // 输出的标记图像
-	int num_labels; // 输出的连通组件个数
-	// 使用8连通算法，并返回相关的统计信息
-	Mat stats; // 输出的每个连通组件的外接矩形、面积等信息
-	Mat centroids; // 输出的每个连通组件的中心坐标
+	Mat labels; // Output labeled image
+	int num_labels; // Number of connected components
+	Mat stats; // Output statistics for each connected component (bounding box, area, etc.)
+	Mat centroids; // Output centroids for each connected component
 	num_labels = connectedComponentsWithStats(img, labels, stats, centroids, 8, CV_32S);
 
-	double sum_area = 0.0; // 面积总和
-	double mean_area = 0.0; // 平均面积
-	for (int i = 1; i < num_labels; i++) { // 从1开始，跳过背景
-		sum_area += stats.at<int>(i, CC_STAT_AREA); // 累加每个连通组件的面积
+	double sum_area = 0.0;
+	double mean_area = 0.0;
+	for (int i = 1; i < num_labels; i++) { // Start from 1 to skip the background
+		sum_area += stats.at<int>(i, CC_STAT_AREA); //  Accumulate area of each connected component
 	}
-	mean_area = sum_area / (num_labels - 1); // 计算平均面积，减去背景
+	mean_area = sum_area / (num_labels - 1); // Calculate mean area, excluding background
 
 	Mat output = Mat::zeros(labels.size(), CV_8UC1);
 	for (int i = 0; i < labels.rows; i++) {
 		for (int j = 0; j < labels.cols; j++) {
-			int label = labels.at<int>(i, j); // 获取当前像素的标记
-			if (label > 0 && stats.at<int>(label, CC_STAT_AREA) >= mean_area * cof) { // 判断当前像素所属的连通组件的面积是否大于或等于平均面积
-				output.at<uchar>(i, j) = 255; // 将output中对应的像素设置为255
-				if (j >= 0.3 * labels.cols && j <= 0.7 * labels.cols) {//划定区域处理不符合正态分布的图像112212
+			int label = labels.at<int>(i, j); // Get label of the current pixel
+			// Check if area of the connected component containing the current pixel is greater than or equal to the mean area
+			if (label > 0 && stats.at<int>(label, CC_STAT_AREA) >= mean_area * cof) { 
+				output.at<uchar>(i, j) = 255;
+				if (j >= 0.3 * labels.cols && j <= 0.7 * labels.cols) {//// Process region where the image does not follow normal distribution, like: 112212
 					firstHistogram[j]++;
 				}
 				
@@ -794,12 +748,11 @@ void CImgPro::processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, 
 	int rows = srcimg.rows;
 	int cols = srcimg.cols;
 	
-	// 遍历图像，以窗口为单位进行处理
 	for (int y = 0; y <= rows - windowHeight; y += windowHeight)
 	{
 		for (int x = 0; x <= cols - windowWidth; x += windowWidth)
 		{
-			// 计算窗口内像素坐标的平均值
+			// Calculate the average value of pixel coordinates within the window
 			int count = 0;
 			int sumX = 0.0, sumY = 0.0;
 			float avgX = 0.0, avgY = 0.0;
@@ -1051,7 +1004,7 @@ Mat CImgPro::OTSU(Mat src)
 	int thresh = 0, PerPixSum[256] = { 0 };
 	float PerPixDis[256] = { 0 };
 
-	//统计每个灰度值的数量
+	//Count the quantity of each grayscale value
 	for (int i=0; i<src.rows; i++)
 	{
 		for (int j=0; j<src.cols; j++)
@@ -1060,39 +1013,39 @@ Mat CImgPro::OTSU(Mat src)
 		}
 	}
 
-	//计算每个灰度等级的像素数占总图像像素数的比例
+	//Calculate the proportion of pixels for each grayscale level compared to the total number of pixels in the image
 	for (int i = 0; i < 256; i++)
 	{
 		PerPixDis[i] = (float)PerPixSum[i] / (src.rows * src.cols);
 	}
 
-	//遍历所有灰度等级，计算最大类间方差对应的阈值
+	//Iterate through all grayscale levels and calculate the threshold corresponding to the maximum between-class variance
 	float PixDis_1, PixSum_1, PixDis_2, PixSum_2, avg_1, avg_2, ICV_temp;
 	double ICV_max = 0.0;
 	for (int i = 0; i < 256; i++)
 	{
 		PixDis_1 = PixSum_1 = PixDis_2 = PixSum_2 = avg_1 = avg_2 = ICV_temp = 0;
-		//计算阈值分割的两部分
+		//Compute the two segments resulting from threshold segmentation
 		for (int j = 0; j < 256; j++)
 		{
-			//第一部分
+			//first segment
 			if (j <= i)
 			{
 				PixDis_1 += PerPixDis[j];
 				PixSum_1 += j * PerPixDis[j];
 			}
-			//第二部分
+			//second segment
 			else
 			{
 				PixDis_2 += PerPixDis[j];
 				PixSum_2 += j * PerPixDis[j];
 			}
 		}
-		//两部分的灰度均值
+		//The grayscale mean values of the two segments
 		avg_1 = PixSum_1 / PixDis_1;
 		avg_2 = PixSum_2 / PixDis_2;
 		ICV_temp = PixDis_1 * PixDis_2 * pow((avg_1 - avg_2), 2);
-		//比较阈值
+		//Compare the thresholds
 		if (ICV_temp > ICV_max)
 		{
 			ICV_max = ICV_temp;
@@ -1100,20 +1053,20 @@ Mat CImgPro::OTSU(Mat src)
 		}
 	}
 
-	//二值化
+	//binary
 	Mat OtsuImg(src.size(), CV_8UC1, Scalar(0));
 	int nonZeroPixelCount = 0;
 	for (int i = 0; i < src.rows; i++)
 	{
 		for (int j = 0; j < src.cols; j++)
 		{
-			//前景部分
-			if (src.at<uchar>(i, j) > 0.8 * thresh)//降低阈值以便偏暗的绿色不被滤除
+			//Foreground
+			if (src.at<uchar>(i, j) > 0.8 * thresh)//Lower the threshold to prevent filtering out darker green tones.
 			{
 				OtsuImg.at<uchar>(i, j) = 255;
 				nonZeroPixelCount++;
 			}
-			//背景部分
+			//background
 			//else
 			//{
 			//	OtsuImg.at<uchar>(i, j) = 0;
@@ -1128,25 +1081,16 @@ Mat CImgPro::OTSU(Mat src)
 	return OtsuImg;
 }
 
-Mat CImgPro::MorphologicalOperation(Mat src, int kernel_size, int cycle_num)
+Mat CImgPro::MorphologicalOperation(Mat src, int kernel_size, int cycle_num_e, int cycle_num_d)
 {
-	Mat MorphImg, kernel;
+	Mat kernel;
 
-	// 定义核
 	kernel = getStructuringElement(MORPH_RECT, Size(kernel_size, kernel_size));
 
-	erode(src, MorphImg, kernel);
-	for (int i = 1; i < cycle_num; i++)
-	{
-		erode(MorphImg, MorphImg, kernel);		// 腐蚀
-	}
-	
-	for (int i = 0; i < cycle_num; i++)
-	{
-		dilate(MorphImg, MorphImg, kernel);		// 膨胀
-	}
+	erode(src, src, kernel, Point(-1, -1), cycle_num_e);
+	dilate(src, src, kernel, Point(-1, -1), cycle_num_d);
 
-	return MorphImg;
+	return src;
 }
 
 Mat CImgPro::ClusterPointsDrawing(Mat& src, vector<Cluster>& points)
@@ -1242,28 +1186,27 @@ Mat CImgPro::ClusterPointsDrawing(Mat& src, vector<Cluster>& points)
 void CImgPro::RANSAC(Cluster& cluster, float thresh, Mat& outimg)
 {
 	vector<float> dis;
-	vector<CImgPro::Cluster> inliers;		//定义存储类型为point的容器储存内点
+	vector<CImgPro::Cluster> inliers;
 	Cluster tempPoints;
 	struct Line {
 		double slope, intercept;
 	};
 
-	int ID = 0;
-	std::random_device rd;		//本地真随机数生成器
-	std::mt19937 gen(rd());		//伪随机数生成器,使用rd作为种子
+	std::random_device rd;		//Local true random number generator
+	std::mt19937 gen(rd());		//Pseudo-random number generator using rd as seed
 
-	int index = 0, best_inliers = 0;
+	int best_inliers = 0;
 	float bestSlope = 0.0, bestIntercept = 0.0;
 
 	float iterations = 0.0, ConfidenceLevel = 0.99, Probability = 2.0 / cluster.points.size();
 	iterations = log((1 - ConfidenceLevel)) / log((1 - pow(Probability, 2)));
-	for (int j = 0; j < iterations; j++)		//在该类中不断迭代
+	for (int j = 0; j < iterations; j++)		//Continuously iterate in this cluster
 	{		
-		// 随机选取两个不同的点 
-		uniform_int_distribution<> distrib(0, cluster.points.size()-1);		//整型分布对象distrib，其范围是[0, n]
+		// Randomly select two different points
+		uniform_int_distribution<> distrib(0, cluster.points.size()-1);		//Integer distribution object 'distrib' with range [0, n]
 		int index1 = distrib(gen);
 		int index2 = distrib(gen);
-		//防止随机到同一索引
+		// Prevent selecting the same index
 		while (index2 == index1)
 		{
 			index2 = distrib(gen);
@@ -1282,48 +1225,50 @@ void CImgPro::RANSAC(Cluster& cluster, float thresh, Mat& outimg)
 		intercept = p1.y - slope * p1.x;
 		Line l = { slope, intercept };
 
-		//计算该类中除p1p2点外其余点到直线的距离
+		// Calculate distances from all points in this cluster to the line excluding points p1 and p2
 		float distance = 0;
-		for (auto p : cluster.points)		//范围for循环，一次迭代，通过迭代器p依次访问points中的每一个元素
+		for (auto p : cluster.points)
 		{
 			if (p != p1 && p != p2)
 			{
 				distance = abs(p.y - l.slope * p.x - l.intercept) / sqrt(1 + l.intercept * l.intercept);
-				//判断局内点
+				//Check inliers
 				if (distance < thresh)
 				{
 					tempPoints.points.push_back(p);
-					dis.push_back(distance);
+					//dis.push_back(distance);
 				}
 			}
 		}				
-		inliers.push_back(tempPoints);
 				
 		if (tempPoints.points.size()>best_inliers)
 		{
+			inliers.clear();
+			inliers.push_back(tempPoints);
 			best_inliers = tempPoints.points.size();
-			ID = index;		//局内最大点集的索引
 			bestSlope = l.slope;
 			bestIntercept = l.intercept;
 
-			//更新内点比例和迭代次数
-			Probability = (float)best_inliers / cluster.points.size(); //根据当前最佳假设的内点数计算内点比例
-			iterations = log((1 - ConfidenceLevel)) / log((1 - pow(Probability, 2))); //根据公式更新迭代次数
+			//Update inlier ratio and iterations 
+			Probability = (float)best_inliers / cluster.points.size(); // Calculate inlier ratio based on the current best hypothesis inliers
+			iterations = log((1 - ConfidenceLevel)) / log((1 - pow(Probability, 2))); 
 			iterations = 100 * iterations;
-			j = 0; //重置迭代计数器
+			j = 0; //Reset iteration counter
 		}
 		tempPoints.points.clear();
-		dis.clear();
-		index++;
+		//dis.clear();
 		
 		
 	}
 
+	//outimg = ClusterPointsDrawing(outimg, inliers);
+
 	/*Scalar color = CV_RGB(255, 0, 0);
 	line(outimg, Point(-bestIntercept / bestSlope, 0), Point((outimg.rows - bestIntercept) / bestSlope, outimg.rows), color, 10, 8, 0);*/
 
-	//该类迭代完成后对局内点最多的点集进行最小二乘法拟合
-	leastSquaresFit_edit(inliers[ID], outimg);
+	//perform least-squares fitting on the point set with the most inliers
+	leastSquaresFit_edit(inliers[0], outimg);
+	//Hough_Line(inliers, outimg);
 }
 
 vector<CImgPro::Cluster> CImgPro::ComparePoints(vector<Cluster>& points)
@@ -1856,7 +1801,7 @@ void CImgPro::expandCluster(Cluster& points, vector<int>& clusterIDs, int curren
 	}
 }
 
-//改进的最小二乘法，能够拟合垂直的直线
+//Improved Least Squares Fitting Capable of Fitting Vertical Lines
 void CImgPro::leastSquaresFit_edit(Cluster& cluster, Mat& outimg)
 {
 	//ax+by+c=0
@@ -1919,6 +1864,107 @@ void CImgPro::leastSquaresFit_edit(Cluster& cluster, Mat& outimg)
 		
 		firstSlope = (float)-a / b;
 	//}
+}
+
+void CImgPro::Hough_Line(vector<Cluster>& clusters, Mat& outimg)
+{
+	int i, j, k, l = 0, Maxcount = 0, slopeNum[10] = { 0 }, j1;
+	double cenY = 0.0, cenX = 0.0, Lthreshold = 0.0, Hthreshold = 0.0, step, slope, tempslope, sum[10] = { 0 };
+	vector<double> finalslope;
+
+	for (i = 0; i < clusters.size(); i++)
+	{
+		for (auto& p : clusters[i].points) {
+			cenX += p.x;
+			cenY += p.y;
+		}
+		cenX = cenX / clusters[i].points.size();
+		cenY = cenY / clusters[i].points.size();
+		Lthreshold = -2;
+		Hthreshold = 4;
+		step = (Hthreshold - Lthreshold) / 7;
+
+		do
+		{
+			for (j = 0; j < clusters[i].points.size(); j++)
+			{
+				if (clusters[i].points[j].x == cenX)
+				{
+					tempslope = 2;
+				}
+				else
+				{
+					slope = (clusters[i].points[j].y - cenY) / (clusters[i].points[j].x - cenX);
+					if (slope > 1 || slope < -1)
+					{
+						tempslope = 1 / slope + 2;
+					}
+					else
+					{
+						tempslope = slope;
+					}
+				}
+				for (k = 0; k < 7; k++)
+				{
+					if (tempslope >= Lthreshold + k * step && tempslope <= Lthreshold + (k + 1) * step)
+					{
+						slopeNum[k]++;
+						sum[k] += tempslope;
+					}
+				}
+			}
+			for (k = 0; k < 7; k++)
+			{
+				if (Maxcount < slopeNum[k])
+				{
+					Maxcount = slopeNum[k];
+					j1 = k;
+				}
+			}
+			tempslope = sum[j1] / slopeNum[j1];
+			if (j1 == 6)
+			{
+				Hthreshold = Lthreshold + (j1 + 1) * step;
+				Lthreshold = Lthreshold + (j1 - 2) * step;
+				step = (Hthreshold - Lthreshold) / 7;
+			}
+			else if (j1 == 0)
+			{
+				Hthreshold = Lthreshold + (j1 + 3) * step;
+				Lthreshold = Lthreshold + (j1)*step;
+				step = (Hthreshold - Lthreshold) / 7;
+			}
+			else
+			{
+				Hthreshold = Lthreshold + (j1 + 2) * step;
+				Lthreshold = Lthreshold + (j1 - 1) * step;
+				step = (Hthreshold - Lthreshold) / 7;
+			}
+			for (k = 0; k < 10; k++)
+			{
+				slopeNum[k] = 0;
+				sum[k] = 0;
+			}
+		} while (step > 0.6);
+		if ((tempslope > 1 && tempslope != 2) || tempslope < -1)
+		{
+			finalslope.push_back(1 / (tempslope - 2));
+		}
+
+		else if (tempslope == 2)
+		{
+			finalslope.push_back(999999);
+		}
+		else
+		{
+			finalslope.push_back(tempslope);;
+		}
+		Scalar color = CV_RGB(255, 0, 0);
+		line(outimg, Point(cenX - cenY / finalslope[l], 0), Point((outimg.rows - cenY) / finalslope[l] + cenX, outimg.rows), color, 10, 8, 0);
+		l++;
+	}
+
+	finalslope.clear();
 }
 
 Mat CImgPro::projectedImg(Mat& img, vector<Cluster>& clusters, float slope)

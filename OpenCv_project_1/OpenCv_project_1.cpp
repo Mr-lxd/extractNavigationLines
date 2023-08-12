@@ -10,101 +10,78 @@ int main()
 	string filename = "D:\\横州甘蔗地\\IMG_20230518_112045.jpg";
 	Mat inputImage = imread(filename);
 
-	//// 获取图像尺寸
-	//int width = inputImage.cols;
-	//int height = inputImage.rows;
-	//// 计算裁剪区域的高度
-	//int cropHeight = height / 10;
-	//// 计算裁剪后图像的起始位置
-	//int startY = cropHeight;
-	//// 裁剪图像
-	//cv::Rect roi(0, startY, width, height - cropHeight);
-	//cv::Mat croppedImage = inputImage(roi);
-
 	CImgPro myImgPro;
 
 	Mat ExGImage(inputImage.size(), CV_8UC1);
-
 	myImgPro.NormalizedExG(inputImage, ExGImage);	
 
 	/*
-		中值滤波比高斯滤波在处理椒盐噪声上效果更好
+		Median filtering is more effective than Gaussian filtering in dealing with salt-and-pepper noise
 	*/
-	int MedianBlur_kernel_size = 5;		//卷积核大小
+	int MedianBlur_kernel_size = 5;		
 	Mat MedianBlurImg = myImgPro.MedianBlur(ExGImage, MedianBlur_kernel_size);
 
 	
 	Mat OtsuImg = myImgPro.OTSU(MedianBlurImg);
 
 	/*
-		形态学操作对于消除细小杂草有帮助，但同时也会减少作物细节
+		Morphological operations are helpful for eliminating weeds and side branches, but also reduce crop details
 	*/
 	Mat MorphImg;
 	int flag = 0;
 	if (CImgPro::NonZeroPixelRatio > 0.06 && CImgPro::NonZeroPixelRatio <= 0.1) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 2);
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 2, 2);
 		flag = 1;
 	}
 	if (CImgPro::NonZeroPixelRatio > 0.1 && CImgPro::NonZeroPixelRatio < 0.2) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5);
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5, 5);
 		flag = 1;
 	}
 	if (CImgPro::NonZeroPixelRatio >= 0.2 && CImgPro::NonZeroPixelRatio < 0.4) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 7);
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 7, 7);
 		flag = 1;
 	}
 	if (CImgPro::NonZeroPixelRatio >= 0.4) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 9);
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 9, 5);
 		flag = 1;
 	}
 
 
 
 	/*
-		使用八连通筛选算法可有效去除噪声和细小杂草，但可进一步优化参数保留更多作物细节
+		The eight-connected algorithm can be employed to further eliminate noise and minor connected components
 	*/
-	float cof = 0.7;
 	Mat ConnectImg;
 	if (flag == 0) {
-		ConnectImg = myImgPro.EightConnectivity(OtsuImg, cof);
+		ConnectImg = myImgPro.EightConnectivity(OtsuImg, 0.7);
 	}
 	else
 	{
-		ConnectImg = myImgPro.EightConnectivity(MorphImg, cof);
+		ConnectImg = myImgPro.EightConnectivity(MorphImg, 0.7);
 	}
 
-
+	//Calculate the x-coordinate of the center row within the crop based on the histogram analysis.
 	Mat firstHistorImg = myImgPro.verticalProjectionForCenterX(CImgPro::firstHistogram);
 
 	/*
-		骨架化，耗费时间长
+		Skeletonization process is characterized by a lengthy computational time
 	*/
 	//CImgPro::Cluster skeleton_points;
 	//Mat skeletonImg = myImgPro.skeletonization(ConnectImg, skeleton_points);
 	
-
-	//int thresh = 10, k = 18;		//k为响应阈值的比例系数
-	//CImgPro::Cluster susan_points;
-	//Mat TempImg = myImgPro.My_SUSAN(ConnectImg, thresh, k, susan_points);
-	//Mat SusanImg = TempImg.clone();
-	///*int x = FeatureImg.cols, y = FeatureImg.rows;*/
-	///*cout << "size:" << x <<"x"<< y << endl;*/
-
+	/*
+	int thresh = 10, k = 18;		//k为响应阈值的比例系数
+	CImgPro::Cluster susan_points;
+	Mat TempImg = myImgPro.My_SUSAN(ConnectImg, thresh, k, susan_points);
+	Mat SusanImg = TempImg.clone();
+	*/
 
 	/*
-		目前看使用长条窗口去提取作物特征点比较好，能保留作物主要特征同时减少数据量
+		Using windows to extract features points, reducing data size.
 	*/
 	CImgPro::Cluster reduce_points;
 	Mat featureImg(ConnectImg.size(), CV_8UC1, Scalar(0));
 	myImgPro.processImageWithWindow(ConnectImg, featureImg, reduce_points, 8, 8);
-
-
-	/*
-	myImgPro.averageCoordinates(susan_points);
-	vector< CImgPro::Cluster> points;
-	points.push_back(susan_points);
-	Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, points);
-	*/
 
 
 	//高斯混合模型的协方差矩阵类型(对应不同的数据形状)，球状、对角、完全、等方位
@@ -131,10 +108,16 @@ int main()
 
 
 	/*
-		使用dbscan的思想
+		Density clustering-based
 	*/
 	vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(reduce_points, 110, 50);
-	vector<CImgPro::Cluster> second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, CImgPro::centerX, 0.65);	
+	float cof = 0.4;
+	vector<CImgPro::Cluster> second_cluster_points;
+	do
+	{
+		second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, CImgPro::centerX, cof);
+		cof += 0.05;
+	} while (second_cluster_points.size() == 0);
 	Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
 	Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
 
@@ -144,27 +127,28 @@ int main()
 	Mat maxPtsImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
 
 
+	//Thresholding segmentation of images
 	Mat HistogramImg;
-	//if (CImgPro::NonZeroPixelRatio <= 0.1) {
-	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.9);
-	//}
-	//if (CImgPro::NonZeroPixelRatio < 0.2 && CImgPro::NonZeroPixelRatio > 0.1) {
-	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
-	//}
-	//if (CImgPro::NonZeroPixelRatio < 0.3 && CImgPro::NonZeroPixelRatio >= 0.2) {
-	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.5);
-	//}
-	//if (CImgPro::NonZeroPixelRatio >= 0.3) {
-	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.4);
-	//}
-	double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -8.67, 0.354);
+	/*
+	if (CImgPro::NonZeroPixelRatio <= 0.1) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
+	}
+	if (CImgPro::NonZeroPixelRatio < 0.2 && CImgPro::NonZeroPixelRatio > 0.1) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
+	}
+	if (CImgPro::NonZeroPixelRatio < 0.3 && CImgPro::NonZeroPixelRatio >= 0.2) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.5);
+	}
+	if (CImgPro::NonZeroPixelRatio >= 0.3) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.4);
+	}
+	*/
+	//double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -8.67, 0.354);
+	double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -4.977, 0.3185);
 	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, tsd);
-
-
-
-
 	myImgPro.retainMainStem(maxPts);
 	Mat MainStemImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
+
 
 
 	CImgPro::Cluster final_points;
@@ -172,40 +156,31 @@ int main()
 	myImgPro.processImageWithWindow(MainStemImg, ExtractImg, final_points, 16, 32);
 
 
-
-	/*
-		目前来看，霍夫变换无法很好处理离群点和噪声
-	*/
-	///*vector<CCoorTran::LineParameter> linepara;
-	//myImgPro.Hough_Line(points, TempImg, linepara);
-	//Mat HoughImg = TempImg;*/
-
 	/*
 		经过实验，ransac算法能比较好处理离群点和噪声。
 		距离阈值需根据数据点调整
 		使用改进的最小二乘法处理ransac后的点得到进一步的优化
-		数据点规模很大的情况下会造成迭代次数过多，程序报错
 	*/
 	Mat RansacImg = inputImage.clone();
-	if (CImgPro::NonZeroPixelRatio >= 0.2) {
-		myImgPro.RANSAC(final_points, 0.09, RansacImg);
+	//Mat RansacImg(ConnectImg.size(), CV_8UC3, Scalar(0, 0, 0));
+	/*if (CImgPro::NonZeroPixelRatio >= 0.2) {
+		myImgPro.RANSAC(final_points, 0.155, RansacImg);
 	}
 	else
 	{
 		myImgPro.RANSAC(final_points, 0.13, RansacImg);
-	}
-	
+	}*/
+	myImgPro.RANSAC(final_points, 0.155, RansacImg);
 
 	//Mat ProjectedImg = myImgPro.projectedImg(maxPtsImg, maxPts_temp, CImgPro::firstSlope);
 
 
-	//保存拟合图像
 	myImgPro.SaveImg(filename, RansacImg);
 
 
 
 	//namedWindow("feature_Image", WINDOW_NORMAL);
-	//moveWindow("feature_Image", 0, 0);		// 设置第一个窗口的位置
+	//moveWindow("feature_Image", 0, 0);		
 	//imshow("feature_Image", featureImg);
 
 	/*namedWindow("ExG_Image", WINDOW_NORMAL);
@@ -270,10 +245,6 @@ int main()
 	//namedWindow("Skeleton_Img", WINDOW_NORMAL);
 	//moveWindow("Skeleton_Img", 500, 700);
 	//imshow("Skeleton_Img", skeletonImg);
-
-	////namedWindow("Hough_Img", WINDOW_NORMAL);
-	////moveWindow("Hough_Img", 500, 1000);
-	////imshow("Hough_Img", HoughImg);
 
 	namedWindow("Ransac_Img", WINDOW_NORMAL);
 	moveWindow("Ransac_Img", 500, 400);

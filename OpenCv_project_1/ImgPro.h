@@ -5,7 +5,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/opencv.hpp>
 #include <math.h>
-//使用vcpkg安装eigen库，注意是x64
+//Install the Eigen library using vcpkg, and make sure it's for the x64 architecture.
 #include <Eigen/Dense>
 
 
@@ -39,12 +39,11 @@ class CImgPro
 		Mat verticalProjectionForCenterX(const vector<int>& histogram);
 		Mat My_SUSAN(Mat& src, int thresh, int k, Cluster& points);
 		Mat OTSU(Mat src);
-		Mat MorphologicalOperation(Mat src, int kernel_size, int cycle_num);
+		Mat MorphologicalOperation(Mat src, int kernel_size, int cycle_num_e, int cycle_num_d);
 		Mat ClusterPointsDrawing(Mat& src, vector<Cluster>& points);
 		Mat applyPCA(Cluster& cluster, int num_components);
 		Mat projectedImg(Mat& img, vector<Cluster>& clusters, float slope);
 		void processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, int windowWidth, int windowHeight);
-		void averageCoordinates(Cluster& points);
 		Mat EightConnectivity(Mat& img, float cof);
 		Mat skeletonization(Mat& img, Cluster& points);
 		vector<Cluster> Gaussian_Mixture_Model(Cluster& points, int numCluster, ml::EM::Types covarianceType);
@@ -52,13 +51,14 @@ class CImgPro
 		vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX, float cof);
 		vector<Cluster> MaxPoints(vector<Cluster>& clusters);
 		void retainMainStem(vector<Cluster>& clusters);
-		void NormalizedExG(Mat srcimg, Mat& outimg);
+		void NormalizedExG(Mat& srcimg, Mat& outimg);
 		vector<Cluster> Cluster_Nearest(Mat& featureimage);
 		void RANSAC(Cluster& points, float thresh, Mat& outimg);
 		vector<Cluster> Cluster_for_Ransac(Mat& featureimage, int areaHeight, int areaWidth, int areaDegree, int areaExtent);
 		vector<Cluster> Bisecting_Kmeans(Cluster& points, int k, float perCof);
 		void SaveImg(String filename, Mat& img);
 		void leastSquaresFit_edit(Cluster& cluster, Mat& outimg);
+		void Hough_Line(vector<Cluster>& clusters, Mat& outimg);
 
 
 	private:
