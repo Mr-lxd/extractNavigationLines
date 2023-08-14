@@ -5,13 +5,13 @@
 #include <random> 
 #include<opencv2/imgproc/types_c.h>
 
+
 float CImgPro::NonZeroPixelRatio = 0.0f, CImgPro::firstSlope = -9999;
-int CImgPro::centerX = -1;
+int CImgPro::centerX = -1, CImgPro::imgCols = -1, CImgPro::imgRows = -1;
 vector<int>  CImgPro::firstHistogram(4096, 0);
 
-//////////////////////////////////////////////////////////////////////
-// ExG
-//////////////////////////////////////////////////////////////////////
+
+
 void CImgPro::NormalizedExG(Mat& srcimg, Mat& outimg)
 {
 	cvtColor(srcimg, outimg, COLOR_RGB2GRAY);		// convert input image to gray image
@@ -1148,32 +1148,32 @@ Mat CImgPro::ClusterPointsDrawing(Mat& src, vector<Cluster>& points)
 	//		int count = 0;		//0表示计算的是最小点1表示最大点
 	//		for (Point& p : cluster.CategID) {
 	//			if (count == 0) {
-	//				//if (cluster.ID == 'l') {
-	//				//	int x = calculate_x(p, k1, outimg.rows);
-	//				//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				//}
+	//				if (cluster.ID == 'l') {
+	//					int x = calculate_x(p, k1, outimg.rows);
+	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				}
 	//				if (cluster.ID == 'c') {
 	//					int x = calculate_x(p, k5, outimg.rows);
 	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
 	//				}
-	//				//if (cluster.ID == 'r') {
-	//				//	int x = calculate_x(p, k3, outimg.rows);
-	//				//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				//}
+	//				if (cluster.ID == 'r') {
+	//					int x = calculate_x(p, k3, outimg.rows);
+	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				}
 	//			}
 	//			if (count == 1) {
-	//				//if (cluster.ID == 'l') {
-	//				//	int x = calculate_x(p, k2, outimg.rows);
-	//				//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				//}
+	//				if (cluster.ID == 'l') {
+	//					int x = calculate_x(p, k2, outimg.rows);
+	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				}
 	//				if (cluster.ID == 'c') {
 	//					int x = calculate_x(p, k6, outimg.rows);
 	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
 	//				}
-	//				//if (cluster.ID == 'r') {
-	//				//	int x = calculate_x(p, k4, outimg.rows);
-	//				//	line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				//}
+	//				if (cluster.ID == 'r') {
+	//					int x = calculate_x(p, k4, outimg.rows);
+	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+	//				}
 	//			}
 	//			count++;
 	//		}
@@ -1700,17 +1700,19 @@ vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cl
 	}
 	*/
 
-	while (!center.empty())
-	{
-		Point minPoint = min(center[0].points);
-		Point maxPoint = max(center[0].points);
+	//while (!center.empty())
+	//{
+		/*Point minPoint = min(center[0].points);
+		Point maxPoint = max(center[0].points);*/
+		Point minPoint = Point(centerX - 0.08 * imgCols, 0);
+		Point maxPoint = Point(centerX + 0.08 * imgCols, 0);
 
 		temp.CategID.push_back(minPoint);
 		temp.CategID.push_back(maxPoint);
 
-		temp.points.insert(temp.points.end(), center[0].points.begin(), center[0].points.end());
+		/*temp.points.insert(temp.points.end(), center[0].points.begin(), center[0].points.end());
 		rotate(center.begin(), center.begin() + 1, center.end());
-		center.pop_back();
+		center.pop_back();*/
 		temp.ID = 'c';
 
 		for (auto it = center.begin(); it != center.end();) {
@@ -1728,7 +1730,7 @@ vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cl
 		final_cluster_points.push_back(temp);
 		temp.points.clear();
 		temp.CategID.clear();
-	}
+	//}
 
 	//right side
 	/*
@@ -1998,7 +2000,7 @@ void CImgPro::SaveImg(String filename, Mat& img)
 	std::string filename_without_extension = basename.substr(0, basename.find_last_of("."));
 
 	// 构造要保存的文件名及路径
-	std::string outfilename = "D:\\ProcessedImg2.0\\" + filename_without_extension + ".jpg";
+	std::string outfilename = "D:\\ProcessedImg3.0\\" + filename_without_extension + ".jpg";
 
 	// 保存处理后的图像
 	cv::imwrite(outfilename, img);

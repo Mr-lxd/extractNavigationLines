@@ -18,7 +18,7 @@ class CImgPro
 {
 	public:
 		static float NonZeroPixelRatio, firstSlope;
-		static int centerX;
+		static int centerX, imgCols, imgRows;
 		static vector<int> firstHistogram;
 
 		typedef struct

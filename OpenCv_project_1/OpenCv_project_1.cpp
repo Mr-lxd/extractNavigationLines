@@ -7,8 +7,10 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_112045.jpg";
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_110208.jpg";
 	Mat inputImage = imread(filename);
+	CImgPro::imgCols = inputImage.cols;
+	CImgPro::imgRows = inputImage.rows;
 
 	CImgPro myImgPro;
 
@@ -30,19 +32,19 @@ int main()
 	Mat MorphImg;
 	int flag = 0;
 	if (CImgPro::NonZeroPixelRatio > 0.06 && CImgPro::NonZeroPixelRatio <= 0.1) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 2, 2);
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 2, 1);
 		flag = 1;
 	}
 	if (CImgPro::NonZeroPixelRatio > 0.1 && CImgPro::NonZeroPixelRatio < 0.2) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5, 5);
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5, 3);
 		flag = 1;
 	}
-	if (CImgPro::NonZeroPixelRatio >= 0.2 && CImgPro::NonZeroPixelRatio < 0.4) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 7, 7);
+	if (CImgPro::NonZeroPixelRatio >= 0.2 && CImgPro::NonZeroPixelRatio < 0.3) {
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 9, 4);
 		flag = 1;
 	}
-	if (CImgPro::NonZeroPixelRatio >= 0.4) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 9, 5);
+	if (CImgPro::NonZeroPixelRatio >= 0.3) {
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 11, 5);
 		flag = 1;
 	}
 
@@ -111,7 +113,7 @@ int main()
 		Density clustering-based
 	*/
 	vector<CImgPro::Cluster> first_cluster_points = myImgPro.firstClusterBaseOnDbscan(reduce_points, 110, 50);
-	float cof = 0.4;
+	float cof = 0.65;//0.4
 	vector<CImgPro::Cluster> second_cluster_points;
 	do
 	{
@@ -122,9 +124,9 @@ int main()
 	Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
 
 
-	vector<CImgPro::Cluster> maxPts = myImgPro.MaxPoints(second_cluster_points);
+	/*vector<CImgPro::Cluster> maxPts = myImgPro.MaxPoints(second_cluster_points);
 	vector<CImgPro::Cluster> maxPts_temp = maxPts;
-	Mat maxPtsImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
+	Mat maxPtsImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);*/
 
 
 	//Thresholding segmentation of images
@@ -143,11 +145,11 @@ int main()
 		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.4);
 	}
 	*/
-	//double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -8.67, 0.354);
-	double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -4.977, 0.3185);
-	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, tsd);
-	myImgPro.retainMainStem(maxPts);
-	Mat MainStemImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);
+	double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -8.67, 0.354);
+	//double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -4.977, 0.3185);
+	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, second_cluster_points, tsd);
+	myImgPro.retainMainStem(second_cluster_points);
+	Mat MainStemImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
 
 
 
@@ -222,9 +224,9 @@ int main()
 	moveWindow("S_Cluster_Img", 800, 0);
 	imshow("S_Cluster_Img", S_ClusterImg);
 
-	namedWindow("maxPts_Img", WINDOW_NORMAL);
-	moveWindow("maxPts_Img", 800, 200);
-	imshow("maxPts_Img", maxPtsImg);
+	//namedWindow("maxPts_Img", WINDOW_NORMAL);
+	//moveWindow("maxPts_Img", 800, 200);
+	//imshow("maxPts_Img", maxPtsImg);
 
 	namedWindow("Histogram_Img", WINDOW_NORMAL);
 	moveWindow("Histogram_Img", 800, 400);
