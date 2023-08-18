@@ -6,10 +6,7 @@
 #include<opencv2/imgproc/types_c.h>
 
 
-float CImgPro::NonZeroPixelRatio = 0.0f, CImgPro::firstSlope = -9999;
-int CImgPro::centerX = -1, CImgPro::imgCols = -1, CImgPro::imgRows = -1;
-vector<int>  CImgPro::firstHistogram(4096, 0);
-
+int CImgPro::imgCols = -1, CImgPro::imgRows = -1;
 
 
 void CImgPro::NormalizedExG(Mat& srcimg, Mat& outimg)
@@ -332,193 +329,6 @@ vector<CImgPro::Cluster> CImgPro::Cluster_Nearest(Mat& featureimage)
 	return points;
 }
 
-//void CImgPro::Hough_Line(vector<CImgPro::Cluster> clusters, Mat& outimg, vector<CCoorTran::LineParameter>& linepara)
-//{
-//	int i, j, k, l = 0, count = 0, pointNum, Maxcount = 0, slopeNum[10] = { 0 },
-//		j1;
-//	double cenY, cenX = 0, Lthreshold = 0.0, Hthreshold = 0.0, step, slope, tempslope, sum[10] = { 0 };
-//	vector<double> finalslope;
-//	CCoorTran::LineParameter linepara_single;
-//	for (i = 0; i < clusters.size(); i++)
-//	{
-//		count += clusters[i].count;
-//	}
-//	if (clusters.size() > 0)
-//		count = count / clusters.size();
-//	for (i = 0; i < clusters.size(); i++)
-//	{
-//		if (clusters[i].count > count * 0.9)
-//		{
-//			/*			cenY = 0;
-//						clusters[i].averageX = clusters[i].averageX / clusters[i].count;
-//						for(j = 0; j < clusters[i].points.size(); j++)
-//						{
-//							cenY += clusters[i].points[j].y;
-//						}
-//						cenY = cenY / clusters[i].points.size();
-//						cenX = clusters[i].averageX;
-//			*/
-//			cenX = clusters[i].averageX;
-//			cenY = clusters[i].averageY;
-//			Lthreshold = -2;
-//			Hthreshold = 4;
-//			step = (Hthreshold - Lthreshold) / 7;
-//			pointNum = clusters[i].points.size();
-//			do
-//			{
-//				for (j = 0; j < pointNum; j++)
-//				{
-//					if (clusters[i].points[j].x == cenX)
-//					{
-//						tempslope = 2;
-//					}
-//					else
-//					{
-//						slope = (clusters[i].points[j].y - cenY) / (clusters[i].points[j].x - cenX);
-//						//使用转换将过大或过小的斜率映射到有限的范围
-//						if (slope > 1 || slope < -1)
-//						{
-//							tempslope = 1 / slope + 2;		// 1 < tempslope < 2 , 2 < tempslope < 3
-//						}
-//						else
-//						{
-//							tempslope = slope;		// -1 < tempslope < 1
-//						}
-//					}
-//					for (k = 0; k < 7; k++)
-//					{
-//						if (tempslope >= Lthreshold + k * step && tempslope <= Lthreshold + (k + 1) * step)
-//						{
-//							slopeNum[k]++;
-//							sum[k] += tempslope;
-//						}
-//					}
-//				}
-//				for (k = 0; k < 7; k++)
-//				{
-//					if (Maxcount < slopeNum[k])
-//					{
-//						Maxcount = slopeNum[k];
-//						j1 = k;
-//					}
-//				}
-//				tempslope = sum[j1] / slopeNum[j1];
-//
-//				//更精确的斜率估计
-//				//该区间内点最多接近斜率上限，扩大该区间范围，修改斜率上下限，缩小步长
-//				if (j1 == 6)
-//				{
-//					Hthreshold = Lthreshold + (j1 + 1) * step;
-//					Lthreshold = Lthreshold + (j1 - 2) * step;
-//					step = (Hthreshold - Lthreshold) / 7;
-//				}
-//				else if (j1 == 0)
-//				{
-//					Hthreshold = Lthreshold + (j1 + 3) * step;
-//					Lthreshold = Lthreshold + (j1)*step;
-//					step = (Hthreshold - Lthreshold) / 7;
-//				}
-//				//最多点的区间在中间，往两边扩大范围
-//				else
-//				{
-//					Hthreshold = Lthreshold + (j1 + 2) * step;
-//					Lthreshold = Lthreshold + (j1 - 1) * step;
-//					step = (Hthreshold - Lthreshold) / 7;
-//				}
-//				for (k = 0; k < 10; k++)
-//				{
-//					slopeNum[k] = 0;
-//					sum[k] = 0;
-//				}
-//			} while (step > 0.6);
-//			//将转换的斜率恢复原值
-//			if ((tempslope > 1 && tempslope != 2) || tempslope < -1)
-//			{
-//				finalslope.push_back(1 / (tempslope - 2));
-//				linepara_single.slope = 1 / (tempslope - 2);
-//			}
-//
-//			else if (tempslope == 2)
-//			{
-//				finalslope.push_back(999999);
-//				linepara_single.slope = 999999;
-//			}
-//			else
-//			{
-//				finalslope.push_back(tempslope);
-//				linepara_single.slope = tempslope;
-//			}
-//			linepara_single.point.x = cenX;
-//			linepara_single.point.y = cenY;
-//			linepara.push_back(linepara_single);
-//			//绘制一条直线，两个point代表该斜率下y=0和y=outimg.rows的端点坐标
-//			Scalar color = CV_RGB(255, 255, 255);
-//			line(outimg, Point(cenX - cenY / finalslope[l], 0), Point((outimg.rows - cenY) / finalslope[l] + cenX, outimg.rows), color, 10, 8, 0);
-//			l++;
-//		}
-//
-//	}
-//	finalslope.clear();
-//}
-//
-//void CImgPro::Least_Square(vector<CImgPro::Cluster> clusters, Mat& outimg, vector<CCoorTran::LineParameter>& linepara)
-//{
-//	vector<Cluster>::iterator iter = clusters.begin();
-//	CCoorTran::LineParameter linepara_single;
-//	double x = 0, xy = 0, y2 = 0, y = 0;
-//	float a, b;
-//	int i, count = 0;
-//	Point point1, point2;
-//	while (iter != clusters.end())
-//	{
-//		count += iter->count;
-//		iter++;
-//	}
-//	if (clusters.size() != 0)
-//		count /= clusters.size();
-//	iter = clusters.begin();
-//	while (iter != clusters.end())
-//	{
-//		//		x = iter->averageX;
-//		//		y = iter->averageY;
-//		if (iter->count > count * 0.8)
-//		{
-//			for (i = 0; i < iter->count; i++)
-//			{
-//				xy += (iter->points[i].x) * (iter->points[i].y);
-//				y2 += (iter->points[i].y) * (iter->points[i].y);
-//				x += iter->points[i].x;
-//				y += iter->points[i].y;
-//			}
-//			if (y2 * (iter->count) != y * y)
-//			{
-//				a = (xy - x * y / iter->count) / (y2 - y * y / iter->count);
-//			}
-//			else
-//				a = 9999999;
-//			x /= iter->count;
-//			y /= iter->count;
-//			b = (float)(x - a * y);
-//			point1.x = (outimg.rows - 1 - y) * a + x;
-//			point1.y = outimg.rows - 1;
-//			point2.x = (-y) * a + x;
-//			point2.y = 0;
-//			Scalar color = CV_RGB(255, 255, 255);
-//			line(outimg, point1, point2,
-//				color, 10, 8, 0);
-//			linepara_single.slope = 1 / a;
-//			linepara_single.point.x = x;
-//			linepara_single.point.y = y;
-//			linepara.push_back(linepara_single);
-//		}
-//		iter++;
-//		xy = 0;
-//		y2 = 0;
-//		x = 0;
-//		y = 0;
-//	}
-//}
-
 
 //////////////////////  
 //code rewriting
@@ -563,16 +373,6 @@ double CImgPro::thresholdingSigmoid(double NonZeroPixelRatio, double k, double x
 	return result;
 }
 
-int CImgPro::calculate_x(Point p, float k, int outimg_rows)
-{
-	// 根据直线方程y = kx + b，求出b的值
-	float b = p.y - k * p.x;
-	// 根据y = outimg.rows，求出x的值
-	int x = (outimg_rows - b) / k;
-	// 返回x
-	return x;
-}
-
 Point CImgPro::centroid(vector<Point>& points)
 {
 	float sum_x = 0.0, sum_y = 0.0;
@@ -599,11 +399,11 @@ int CImgPro::isLeftOrRight(const Point& a, const Point& b, const Point& c)
 {
 	float side = ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
 	if (side > 0)
-		return -1;		//叉积大于0，点在直线及直线左边
+		return -1;		//If the cross product is greater than zero, the point is on the left of the line
 	else if (side < 0)
-		return 1;		//叉积小于0，点在直线及直线右边
+		return 1;		//If the cross product is less than zero, the point is on the right of the line
 	/*else if (((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) == 0)
-		return 0;*/		//点在直线上
+		return 0;*/		//the point is on the the line
 }
 
 bool CImgPro::isClusterPassed(const Cluster& cluster, const Point& a, const Point& b, char ID)
@@ -650,41 +450,6 @@ bool CImgPro::isClusterPassed(const Cluster& cluster, const Point& a, const Poin
 	}
 }
 
-Mat CImgPro::applyPCA(Cluster& cluster, int num_components)
-{
-	// Convert the points in the cluster to a cv::Mat
-	Mat data(static_cast<int>(cluster.points.size()), 2, CV_32F);
-	for (size_t i = 0; i < cluster.points.size(); ++i) {
-		data.at<float>(i, 0) = static_cast<float>(cluster.points[i].x);
-		data.at<float>(i, 1) = static_cast<float>(cluster.points[i].y);
-	}
-
-	// Apply PCA
-	PCA pca(data, Mat(), PCA::DATA_AS_ROW, num_components);
-	Mat projected_data = pca.project(data);		//	降维
-
-
-	return projected_data;
-}
-
-Mat CImgPro::computeSimilarityMatrix(const Cluster& points, double sigma)
-{
-	int n = points.points.size();
-	Mat similarity(n, n, CV_64FC1);
-
-	//计算上三角部分（包括对角线）的相似性矩阵元素
-	for (int i = 0; i < n; i++) 
-	{
-		for (int j = i; j < n; j++) 
-		{
-			double dist = norm(points.points[i] - points.points[j]);		//欧氏距离
-			similarity.at<double>(i, j) = exp(-dist * dist / (2 * sigma * sigma));		//高斯核函数计算相似性值
-			similarity.at<double>(j, i) = similarity.at<double>(i, j);		//确保矩阵的对称性
-		}
-	}
-	return similarity;
-}
-
 Mat CImgPro::MedianBlur(Mat srcimg, int kernel_size)
 {
 	Mat MedianBlurImg(srcimg.size(), CV_8UC1);
@@ -693,13 +458,14 @@ Mat CImgPro::MedianBlur(Mat srcimg, int kernel_size)
 	return MedianBlurImg;
 }
 
-Mat CImgPro::EightConnectivity(Mat& img, float cof)
+pair<Mat, vector<int>> CImgPro::EightConnectivity(Mat& img, float cof)
 {
 	Mat labels; // Output labeled image
 	int num_labels; // Number of connected components
 	Mat stats; // Output statistics for each connected component (bounding box, area, etc.)
 	Mat centroids; // Output centroids for each connected component
 	num_labels = connectedComponentsWithStats(img, labels, stats, centroids, 8, CV_32S);
+	vector<int> firstHistogram(img.cols, 0);
 
 	double sum_area = 0.0;
 	double mean_area = 0.0;
@@ -715,7 +481,7 @@ Mat CImgPro::EightConnectivity(Mat& img, float cof)
 			// Check if area of the connected component containing the current pixel is greater than or equal to the mean area
 			if (label > 0 && stats.at<int>(label, CC_STAT_AREA) >= mean_area * cof) { 
 				output.at<uchar>(i, j) = 255;
-				if (j >= 0.3 * labels.cols && j <= 0.7 * labels.cols) {//// Process region where the image does not follow normal distribution, like: 112212
+				if (j >= 0.325 * labels.cols && j <= 0.675 * labels.cols) {//// Process region where the image does not follow normal distribution, like: 112212
 					firstHistogram[j]++;
 				}
 				
@@ -723,7 +489,7 @@ Mat CImgPro::EightConnectivity(Mat& img, float cof)
 		}
 	}
 
-	return output;
+	return { output,firstHistogram };
 }
 
 Mat CImgPro::skeletonization(Mat& img, Cluster& points)
@@ -838,9 +604,9 @@ Mat CImgPro::verticalProjection(Mat& img, const vector<Cluster>& clusters, doubl
 	return histogramImg;
 }
 
-Mat CImgPro::verticalProjectionForCenterX(const vector<int>& histogram)
+pair<Mat, int> CImgPro::verticalProjectionForCenterX(const vector<int>& histogram)
 {
-	int y_max = -1;
+	int y_max = -1, centerX = -1;
 	for (int i = 0; i < histogram.size(); i++)
 	{
 		if (histogram[i] > y_max) {
@@ -858,7 +624,7 @@ Mat CImgPro::verticalProjectionForCenterX(const vector<int>& histogram)
 	}
 
 
-	return histogramImg;
+	return {histogramImg, centerX};
 }
 
 void CImgPro::retainMainStem(vector<Cluster>& clusters)
@@ -999,10 +765,10 @@ Mat CImgPro::My_SUSAN(Mat& src, int thresh, int k, Cluster& points)
 	return featureImg;
 }
 
-Mat CImgPro::OTSU(Mat src)
+pair<Mat, float> CImgPro::OTSU(Mat src)
 {
 	int thresh = 0, PerPixSum[256] = { 0 };
-	float PerPixDis[256] = { 0 };
+	float PerPixDis[256] = { 0 }, NonZeroPixelRatio = 0.0f;
 
 	//Count the quantity of each grayscale value
 	for (int i=0; i<src.rows; i++)
@@ -1078,7 +844,7 @@ Mat CImgPro::OTSU(Mat src)
 	int totalPixel = src.rows * src.cols;
 	NonZeroPixelRatio = (float)nonZeroPixelCount / totalPixel;
 
-	return OtsuImg;
+	return {OtsuImg, NonZeroPixelRatio};
 }
 
 Mat CImgPro::MorphologicalOperation(Mat src, int kernel_size, int cycle_num_e, int cycle_num_d)
@@ -1192,8 +958,8 @@ void CImgPro::RANSAC(Cluster& cluster, float thresh, Mat& outimg)
 		double slope, intercept;
 	};
 
-	std::random_device rd;		//Local true random number generator
-	std::mt19937 gen(rd());		//Pseudo-random number generator using rd as seed
+	random_device rd;		//Local true random number generator
+	mt19937 gen(rd());		//Pseudo-random number generator using rd as seed
 
 	int best_inliers = 0;
 	float bestSlope = 0.0, bestIntercept = 0.0;
@@ -1239,8 +1005,9 @@ void CImgPro::RANSAC(Cluster& cluster, float thresh, Mat& outimg)
 					//dis.push_back(distance);
 				}
 			}
-		}				
-				
+		}	
+
+
 		if (tempPoints.points.size()>best_inliers)
 		{
 			inliers.clear();
@@ -1252,13 +1019,13 @@ void CImgPro::RANSAC(Cluster& cluster, float thresh, Mat& outimg)
 			//Update inlier ratio and iterations 
 			Probability = (float)best_inliers / cluster.points.size(); // Calculate inlier ratio based on the current best hypothesis inliers
 			iterations = log((1 - ConfidenceLevel)) / log((1 - pow(Probability, 2))); 
-			iterations = 100 * iterations;
+			iterations = 300 * iterations;
 			j = 0; //Reset iteration counter
 		}
+
+		
 		tempPoints.points.clear();
-		//dis.clear();
-		
-		
+		//dis.clear();		
 	}
 
 	//outimg = ClusterPointsDrawing(outimg, inliers);
@@ -1321,173 +1088,6 @@ vector<CImgPro::Cluster> CImgPro::ComparePoints(vector<Cluster>& points)
 
 
 	return cmpPoints;
-}
-
-vector<CImgPro::Cluster> CImgPro::MaxPoints(vector<Cluster>& clusters)
-{
-	Cluster max = clusters[0];
-	if (clusters.size() > 1) {
-		for (auto& c : clusters) {
-			if (c.points.size() > max.points.size()) {
-				max = c;
-			}
-		}
-	}
-
-	vector<Cluster> maxPts;
-	maxPts.push_back(max);
-
-	return maxPts;
-}
-
-vector<CImgPro::Cluster> CImgPro::Cluster_for_Ransac(Mat& featureimage, int areaHeight, int areaWidth, int areaDegree, int areaExtent)
-{
-	vector<Cluster> Categories;		//当前类平均点
-	vector<Cluster> preCateg;
-	vector<Cluster> points;							//用于记录所有类
-	vector<Cluster> finalPoints;		//筛选出的最大三个类
-	Cluster tempPoint;
-	int Height = featureimage.rows, Width = featureimage.cols;
-	vector<int> column(Width, 0);
-	int i, j, k, l, m, n;
-	int tempNum, averageNum, totalNum = 0, areaNum = 0;
-	unsigned char* in = (unsigned char*)featureimage.data;		//传入特征图像数据指针
-	int minD, tempD, ID, averageD, temp = 0;
-
-	//初次聚类，并将初次聚类的平均坐标放入points
-	Categories = BaseCluster(featureimage, Height - 1, areaHeight, areaWidth);
-	for (i = 0; i < Categories.size(); i++)
-	{
-		tempPoint.points.push_back(cvPoint(Categories[i].averageX, Categories[i].averageY));
-		points.push_back(tempPoint);
-		tempPoint.points.clear();
-	}
-
-	//按扫描窗口高度进行每一行的扫描并聚类，下半部？
-	for (i = Height - areaHeight - 1; i >= Height / 2 + areaHeight - 1; i = i - areaHeight)
-	{
-		preCateg = BaseCluster(featureimage, i, areaHeight, areaWidth);		/*预分类当前行，窗口相邻类合并
-																			（断点调试时此处找不到matrix.cpp文件跳到函数中去执行代码，在opencv库中找到文件并指定路径即可）*/
-		if (preCateg.size() != 0)
-			averageD = Width / (2 * preCateg.size()) + areaHeight;					//不安全，除数为0
-
-		//不适用，存在preCateg.size()=1的情况
-		//if(preCateg.size()!=0 && preCateg.size()!=1)
-		//	for (int a = 1; a < preCateg.size(); a++)
-		//	{
-		//		temp +=sqrt(pow(preCateg[a].averageX-preCateg[a-1].averageX, 2) + pow(preCateg[a].averageY - preCateg[a - 1].averageY, 2))/(preCateg.size()-1) + areaHeight;
-		//		averageD = temp;
-		//	}
-
-		for (j = 0; j < preCateg.size(); j++)
-		{
-			minD = 4096;
-			for (k = 0; k < Categories.size(); k++)
-			{
-				//计算当前行聚类中第j个聚类与上次聚类的距离
-				tempD = sqrt((preCateg[j].averageX - Categories[k].averageX) * (preCateg[j].averageX - Categories[k].averageX)
-					+ (preCateg[j].averageY - Categories[k].averageY) * (preCateg[j].averageY - Categories[k].averageY));
-				//找出最小距离和相应的索引ID
-				if (tempD < minD)
-				{
-					ID = k;
-					minD = tempD;
-				}
-			}
-			if (minD < averageD)
-			{
-				//将当前聚类归入Categories中距离最近的索引ID的聚类，并更新points中相应位置的平均点
-				Categories[ID].CategID.push_back(cvPoint(preCateg[j].averageX, preCateg[j].averageY));
-				points[ID].points.push_back(cvPoint(preCateg[j].averageX, preCateg[j].averageY));
-			}
-			else
-			{
-				//将当前preCateg中第j个聚类作为新的类别加入Categories，并在points中添加新的类平均点
-				tempPoint.points.clear();
-				preCateg[j].ID = Categories.size() + 1;
-				Categories.push_back(preCateg[j]);
-				tempPoint.points.push_back(cvPoint(preCateg[j].averageX, preCateg[j].averageY));
-				points.push_back(tempPoint);
-			}
-
-		}
-
-		//更新Categories为当前行聚类的平均坐标，为计算下一次的聚类与该行聚类的距离做准备
-		for (j = 0; j < Categories.size(); j++)
-		{
-			l = 0;
-			m = 0;
-			if (Categories[j].CategID.size() != 0)
-			{
-				for (k = 0; k < Categories[j].CategID.size(); k++)
-				{
-					l += Categories[j].CategID[k].x;
-					m += Categories[j].CategID[k].y;
-				}
-				Categories[j].averageX = l / Categories[j].CategID.size();
-				Categories[j].averageY = m / Categories[j].CategID.size();
-			}
-			Categories[j].CategID.clear();
-		}
-		preCateg.clear();
-	}
-
-	for (i = Height / 2 - 1; i >= areaDegree - 1; i = i - areaDegree)
-	{
-		preCateg = BaseCluster(featureimage, i, areaDegree, areaExtent);
-		averageD = Width / (1.55 * preCateg.size()) + areaDegree;
-		for (j = 0; j < preCateg.size(); j++)
-		{
-			minD = 4096;
-			for (k = 0; k < Categories.size(); k++)
-			{
-				tempD = sqrt((preCateg[j].averageX - Categories[k].averageX) * (preCateg[j].averageX - Categories[k].averageX)
-					+ (preCateg[j].averageY - Categories[k].averageY) * (preCateg[j].averageY - Categories[k].averageY));
-				if (tempD < minD)
-				{
-					ID = k;
-					minD = tempD;
-				}
-			}
-
-			if (minD < averageD)
-			{
-				Categories[ID].CategID.push_back(cvPoint(preCateg[j].averageX, preCateg[j].averageY));
-				points[ID].points.push_back(cvPoint(preCateg[j].averageX, preCateg[j].averageY));
-			}
-			else
-			{
-				tempPoint.points.clear();
-				preCateg[j].ID = Categories.size() + 1;
-				Categories.push_back(preCateg[j]);
-				tempPoint.points.push_back(cvPoint(preCateg[j].averageX, preCateg[j].averageY));
-				points.push_back(tempPoint);
-			}
-
-		}
-		for (j = 0; j < Categories.size(); j++)
-		{
-			l = 0;
-			m = 0;
-			if (Categories[j].CategID.size() != 0)
-			{
-				for (k = 0; k < Categories[j].CategID.size(); k++)
-				{
-					l += Categories[j].CategID[k].x;
-					m += Categories[j].CategID[k].y;
-				}
-				Categories[j].averageX = l / Categories[j].CategID.size();
-				Categories[j].averageY = m / Categories[j].CategID.size();
-			}
-			Categories[j].CategID.clear();
-		}
-		preCateg.clear();
-	}
-
-
-	finalPoints = ComparePoints(points);
-
-	return finalPoints;
 }
 
 vector<CImgPro::Cluster> CImgPro::Bisecting_Kmeans(Cluster& points, int k, float perCof)
@@ -1704,8 +1304,8 @@ vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cl
 	//{
 		/*Point minPoint = min(center[0].points);
 		Point maxPoint = max(center[0].points);*/
-		Point minPoint = Point(centerX - 0.08 * imgCols, 0);
-		Point maxPoint = Point(centerX + 0.08 * imgCols, 0);
+		Point minPoint = Point(imgCenterX - 0.07 * imgCols, 0);
+		Point maxPoint = Point(imgCenterX + 0.07 * imgCols, 0);
 
 		temp.CategID.push_back(minPoint);
 		temp.CategID.push_back(maxPoint);
@@ -1864,7 +1464,7 @@ void CImgPro::leastSquaresFit_edit(Cluster& cluster, Mat& outimg)
 			line(outimg, Point(-c / a, 0), Point((outimg.rows * (-b) - c) / a, outimg.rows), color, 10, 8, 0);
 		}
 		
-		firstSlope = (float)-a / b;
+		float firstSlope = (float)-a / b;
 	//}
 }
 
@@ -2000,7 +1600,7 @@ void CImgPro::SaveImg(String filename, Mat& img)
 	std::string filename_without_extension = basename.substr(0, basename.find_last_of("."));
 
 	// 构造要保存的文件名及路径
-	std::string outfilename = "D:\\ProcessedImg3.0\\" + filename_without_extension + ".jpg";
+	std::string outfilename = "D:\\ProcessedImg2.0\\" + filename_without_extension + ".jpg";
 
 	// 保存处理后的图像
 	cv::imwrite(outfilename, img);

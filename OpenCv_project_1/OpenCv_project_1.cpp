@@ -7,7 +7,7 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_110208.jpg";
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_094738.jpg";
 	Mat inputImage = imread(filename);
 	CImgPro::imgCols = inputImage.cols;
 	CImgPro::imgRows = inputImage.rows;
@@ -23,28 +23,33 @@ int main()
 	int MedianBlur_kernel_size = 5;		
 	Mat MedianBlurImg = myImgPro.MedianBlur(ExGImage, MedianBlur_kernel_size);
 
-	
-	Mat OtsuImg = myImgPro.OTSU(MedianBlurImg);
+	auto result_OTSU = myImgPro.OTSU(MedianBlurImg);
+	Mat OtsuImg = result_OTSU.first;
+	float NonZeroPixelRatio = result_OTSU.second;
 
 	/*
 		Morphological operations are helpful for eliminating weeds and side branches, but also reduce crop details
 	*/
 	Mat MorphImg;
 	int flag = 0;
-	if (CImgPro::NonZeroPixelRatio > 0.06 && CImgPro::NonZeroPixelRatio <= 0.1) {
+	if (NonZeroPixelRatio > 0.06 && NonZeroPixelRatio <= 0.1) {
 		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 2, 1);
 		flag = 1;
 	}
-	if (CImgPro::NonZeroPixelRatio > 0.1 && CImgPro::NonZeroPixelRatio < 0.2) {
+	if (NonZeroPixelRatio > 0.1 && NonZeroPixelRatio < 0.2) {
 		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5, 3);
 		flag = 1;
 	}
-	if (CImgPro::NonZeroPixelRatio >= 0.2 && CImgPro::NonZeroPixelRatio < 0.3) {
+	if (NonZeroPixelRatio >= 0.2 && NonZeroPixelRatio < 0.3) {
 		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 9, 4);
 		flag = 1;
 	}
-	if (CImgPro::NonZeroPixelRatio >= 0.3) {
+	if (NonZeroPixelRatio >= 0.3 && NonZeroPixelRatio < 0.4) {
 		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 11, 5);
+		flag = 1;
+	}
+	if (NonZeroPixelRatio >= 0.4) {
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 14, 6);
 		flag = 1;
 	}
 
@@ -53,17 +58,23 @@ int main()
 	/*
 		The eight-connected algorithm can be employed to further eliminate noise and minor connected components
 	*/
-	Mat ConnectImg;
+	pair<Mat, vector<int>> result_EC;
 	if (flag == 0) {
-		ConnectImg = myImgPro.EightConnectivity(OtsuImg, 0.7);
+		result_EC = myImgPro.EightConnectivity(OtsuImg, 0.7);
 	}
 	else
 	{
-		ConnectImg = myImgPro.EightConnectivity(MorphImg, 0.7);
+		result_EC = myImgPro.EightConnectivity(MorphImg, 0.7);
 	}
+	Mat ConnectImg = result_EC.first;
 
-	//Calculate the x-coordinate of the center row within the crop based on the histogram analysis.
-	Mat firstHistorImg = myImgPro.verticalProjectionForCenterX(CImgPro::firstHistogram);
+
+
+	//Calculate the x-coordinate of the center row within the crop based on the histogram analysis
+	auto result_VPFCX = myImgPro.verticalProjectionForCenterX(result_EC.second);
+	Mat firstHistorImg = result_VPFCX.first;
+	int centerX = result_VPFCX.second;
+
 
 	/*
 		Skeletonization process is characterized by a lengthy computational time
@@ -79,7 +90,7 @@ int main()
 	*/
 
 	/*
-		Using windows to extract features points, reducing data size.
+		Using windows to extract features points, reducing data size
 	*/
 	CImgPro::Cluster reduce_points;
 	Mat featureImg(ConnectImg.size(), CV_8UC1, Scalar(0));
@@ -117,16 +128,11 @@ int main()
 	vector<CImgPro::Cluster> second_cluster_points;
 	do
 	{
-		second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, CImgPro::centerX, cof);
+		second_cluster_points = myImgPro.secondClusterBaseOnCenterX(first_cluster_points, centerX, cof);
 		cof += 0.05;
 	} while (second_cluster_points.size() == 0);
 	Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
 	Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
-
-
-	/*vector<CImgPro::Cluster> maxPts = myImgPro.MaxPoints(second_cluster_points);
-	vector<CImgPro::Cluster> maxPts_temp = maxPts;
-	Mat maxPtsImg = myImgPro.ClusterPointsDrawing(ExGImage, maxPts);*/
 
 
 	//Thresholding segmentation of images
@@ -145,41 +151,46 @@ int main()
 		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.4);
 	}
 	*/
-	double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -8.67, 0.354);
-	//double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -4.977, 0.3185);
+	double tsd = myImgPro.thresholdingSigmoid(NonZeroPixelRatio, -8.67, 0.354);//0.1-0.9  0.4-0.4
+	//double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -4.977, 0.3185);//0.04-0.8  0.4-0.4
 	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, second_cluster_points, tsd);
 	myImgPro.retainMainStem(second_cluster_points);
 	Mat MainStemImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
 
 
-
+	/*
+		Second extraction
+	*/
 	CImgPro::Cluster final_points;
 	Mat ExtractImg(MainStemImg.size(), CV_8UC1, Scalar(0));
 	myImgPro.processImageWithWindow(MainStemImg, ExtractImg, final_points, 16, 32);
 
 
 	/*
-		经过实验，ransac算法能比较好处理离群点和噪声。
-		距离阈值需根据数据点调整
-		使用改进的最小二乘法处理ransac后的点得到进一步的优化
+		fit line
 	*/
 	Mat RansacImg = inputImage.clone();
 	//Mat RansacImg(ConnectImg.size(), CV_8UC3, Scalar(0, 0, 0));
-	/*if (CImgPro::NonZeroPixelRatio >= 0.2) {
+	if (NonZeroPixelRatio >= 0.1) {
 		myImgPro.RANSAC(final_points, 0.155, RansacImg);
 	}
 	else
 	{
 		myImgPro.RANSAC(final_points, 0.13, RansacImg);
-	}*/
-	myImgPro.RANSAC(final_points, 0.155, RansacImg);
+	}
+
 
 	//Mat ProjectedImg = myImgPro.projectedImg(maxPtsImg, maxPts_temp, CImgPro::firstSlope);
+
+	/*vector<CImgPro::Cluster> F_Pts;
+	F_Pts.push_back(final_points);
+	myImgPro.Hough_Line(F_Pts, RansacImg);*/
 
 
 	myImgPro.SaveImg(filename, RansacImg);
 
 
+	/********************************************************************************************************************/
 
 	//namedWindow("feature_Image", WINDOW_NORMAL);
 	//moveWindow("feature_Image", 0, 0);		
@@ -192,10 +203,6 @@ int main()
 	/*namedWindow("MedianBlur_Img", WINDOW_NORMAL);
 	moveWindow("MedianBlur_Img",500, 0);		
 	imshow("MedianBlur_Img", MedianBlurImg);*/
-
-	/*namedWindow("Susan_Img", WINDOW_NORMAL);
-	moveWindow("Susan_Img", 0, 500);
-	imshow("Susan_Img", TempImg);*/
 
 	/*namedWindow("OTSU_Img", WINDOW_NORMAL);
 	moveWindow("OTSU_Img", 500, 500);
@@ -224,10 +231,6 @@ int main()
 	moveWindow("S_Cluster_Img", 800, 0);
 	imshow("S_Cluster_Img", S_ClusterImg);
 
-	//namedWindow("maxPts_Img", WINDOW_NORMAL);
-	//moveWindow("maxPts_Img", 800, 200);
-	//imshow("maxPts_Img", maxPtsImg);
-
 	namedWindow("Histogram_Img", WINDOW_NORMAL);
 	moveWindow("Histogram_Img", 800, 400);
 	imshow("Histogram_Img", HistogramImg);
@@ -239,10 +242,6 @@ int main()
 	namedWindow("Extract_Img", WINDOW_NORMAL);
 	moveWindow("Extract_Img", 900, 200);
 	imshow("Extract_Img", ExtractImg);
-
-	//namedWindow("LS_Img", WINDOW_NORMAL);
-	//moveWindow("LS_Img", 900, 400);
-	//imshow("LS_Img", LSImg);
 
 	//namedWindow("Skeleton_Img", WINDOW_NORMAL);
 	//moveWindow("Skeleton_Img", 500, 700);

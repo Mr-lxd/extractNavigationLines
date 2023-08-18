@@ -17,9 +17,7 @@ using namespace Eigen;
 class CImgPro
 {
 	public:
-		static float NonZeroPixelRatio, firstSlope;
-		static int centerX, imgCols, imgRows;
-		static vector<int> firstHistogram;
+		static int imgCols, imgRows;
 
 		typedef struct
 		{
@@ -36,26 +34,23 @@ class CImgPro
 		double thresholdingSigmoid(double NonZeroPixelRatio, double k, double x);
 		Mat MedianBlur(Mat srcimg, int kernel_size);
 		Mat verticalProjection(Mat& img, const vector<Cluster>& clusters, double cof);
-		Mat verticalProjectionForCenterX(const vector<int>& histogram);
-		Mat My_SUSAN(Mat& src, int thresh, int k, Cluster& points);
-		Mat OTSU(Mat src);
+		Mat My_SUSAN(Mat& src, int thresh, int k, Cluster& points);		
 		Mat MorphologicalOperation(Mat src, int kernel_size, int cycle_num_e, int cycle_num_d);
 		Mat ClusterPointsDrawing(Mat& src, vector<Cluster>& points);
-		Mat applyPCA(Cluster& cluster, int num_components);
 		Mat projectedImg(Mat& img, vector<Cluster>& clusters, float slope);
-		void processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, int windowWidth, int windowHeight);
-		Mat EightConnectivity(Mat& img, float cof);
 		Mat skeletonization(Mat& img, Cluster& points);
+		pair<Mat, int> verticalProjectionForCenterX(const vector<int>& histogram);
+		pair<Mat, vector<int>> EightConnectivity(Mat& img, float cof);
+		pair<Mat, float> OTSU(Mat src);
 		vector<Cluster> Gaussian_Mixture_Model(Cluster& points, int numCluster, ml::EM::Types covarianceType);
 		vector<Cluster> firstClusterBaseOnDbscan(Cluster& points, float epsilon, int minPts);
 		vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX, float cof);
-		vector<Cluster> MaxPoints(vector<Cluster>& clusters);
-		void retainMainStem(vector<Cluster>& clusters);
-		void NormalizedExG(Mat& srcimg, Mat& outimg);
 		vector<Cluster> Cluster_Nearest(Mat& featureimage);
-		void RANSAC(Cluster& points, float thresh, Mat& outimg);
-		vector<Cluster> Cluster_for_Ransac(Mat& featureimage, int areaHeight, int areaWidth, int areaDegree, int areaExtent);
 		vector<Cluster> Bisecting_Kmeans(Cluster& points, int k, float perCof);
+		void processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, int windowWidth, int windowHeight);
+		void retainMainStem(vector<Cluster>& clusters);
+		void NormalizedExG(Mat& srcimg, Mat& outimg);		
+		void RANSAC(Cluster& points, float thresh, Mat& outimg);
 		void SaveImg(String filename, Mat& img);
 		void leastSquaresFit_edit(Cluster& cluster, Mat& outimg);
 		void Hough_Line(vector<Cluster>& clusters, Mat& outimg);
@@ -68,13 +63,11 @@ class CImgPro
 
 		float euclidean_distance(Point a, Point b);
 		float calculateNonZeroPixelRatio(Mat& img);
-		int calculate_x(Point p, float k, int outimg_rows);
+		bool isClusterPassed(const Cluster& cluster, const Point& minPoint, const Point& maxPoint, char ID);
+		int isLeftOrRight(const Point& a, const Point& b, const Point& c);
 		Point centroid(vector<Point>& points);
 		Point min(vector<Point>& points) const;
 		Point max(vector<Point>& points) const;
-		int isLeftOrRight(const Point& a, const Point& b, const Point& c);
-		bool isClusterPassed(const Cluster& cluster, const Point& minPoint, const Point& maxPoint, char ID);
-		Mat computeSimilarityMatrix(const Cluster& points, double sigma);
 		vector<Cluster> ComparePoints(vector<Cluster>& points);
 		vector<int> regionQuery(Cluster& points, Point& point, double epsilon);
 		void expandCluster(Cluster& points, vector<int>& clusterIDs, int currentClusterID,
