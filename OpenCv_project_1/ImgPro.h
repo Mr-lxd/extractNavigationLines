@@ -63,6 +63,7 @@ class CImgPro
 
 		float euclidean_distance(Point a, Point b);
 		float calculateNonZeroPixelRatio(Mat& img);
+		int calculate_x(Point p, float k, int outimg_rows);
 		bool isClusterPassed(const Cluster& cluster, const Point& minPoint, const Point& maxPoint, char ID);
 		int isLeftOrRight(const Point& a, const Point& b, const Point& c);
 		Point centroid(vector<Point>& points);

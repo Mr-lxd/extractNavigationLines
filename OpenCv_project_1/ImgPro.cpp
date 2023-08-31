@@ -383,6 +383,16 @@ Point CImgPro::centroid(vector<Point>& points)
 	return Point(sum_x / points.size(), sum_y / points.size());
 }
 
+int CImgPro::calculate_x(Point p, float k, int outimg_rows)
+{
+	// 根据直线方程y = kx + b，求出b的值
+	float b = p.y - k * p.x;
+	// 根据y = outimg.rows，求出x的值
+	int x = (outimg_rows - b) / k;
+	// 返回x
+	return x;
+}
+
 Point CImgPro::min(vector<Point>& points) const {
 	assert(!points.empty());
 	return *std::min_element(points.begin(), points.end(),
@@ -904,47 +914,52 @@ Mat CImgPro::ClusterPointsDrawing(Mat& src, vector<Cluster>& points)
 				putText(outimg, std::to_string(id), textPt, FONT_HERSHEY_SIMPLEX, 4, color, 6);
 				firstPoint = false;
 			}
+
+			//line(outimg, Point(points[i].averageX, points[i].averageY), Point(2029, points[i].averageY), Scalar(255, 255, 255), 1, 8, 0);
+			arrowedLine(outimg, Point(points[i].averageX, points[i].averageY), Point(2029, points[i].averageY), Scalar(255, 255, 255), 2, 8, 0, 0.1);
+			arrowedLine(outimg, Point(2029, points[i].averageY), Point(points[i].averageX, points[i].averageY), Scalar(255, 255, 255), 2, 8, 0, 0.1);
 		}
 
 	}
+	line(outimg, Point(2029, 0), Point(2029, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
 
 	//绘制范围直线
-	//for (Cluster& cluster : points) {
-	//	if (cluster.ID != '\\0') {
-	//		int count = 0;		//0表示计算的是最小点1表示最大点
-	//		for (Point& p : cluster.CategID) {
-	//			if (count == 0) {
-	//				if (cluster.ID == 'l') {
-	//					int x = calculate_x(p, k1, outimg.rows);
-	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				}
-	//				if (cluster.ID == 'c') {
-	//					int x = calculate_x(p, k5, outimg.rows);
-	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				}
-	//				if (cluster.ID == 'r') {
-	//					int x = calculate_x(p, k3, outimg.rows);
-	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				}
-	//			}
-	//			if (count == 1) {
-	//				if (cluster.ID == 'l') {
-	//					int x = calculate_x(p, k2, outimg.rows);
-	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				}
-	//				if (cluster.ID == 'c') {
-	//					int x = calculate_x(p, k6, outimg.rows);
-	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				}
-	//				if (cluster.ID == 'r') {
-	//					int x = calculate_x(p, k4, outimg.rows);
-	//					line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
-	//				}
-	//			}
-	//			count++;
-	//		}
-	//	}
-	//}
+	for (Cluster& cluster : points) {
+		if (cluster.ID != '\\0') {
+			int count = 0;		//0表示计算的是最小点1表示最大点
+			for (Point& p : cluster.CategID) {
+				if (count == 0) {
+					if (cluster.ID == 'l') {
+						int x = calculate_x(p, k1, outimg.rows);
+						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					}
+					if (cluster.ID == 'c') {
+						int x = calculate_x(p, k5, outimg.rows);
+						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					}
+					if (cluster.ID == 'r') {
+						int x = calculate_x(p, k3, outimg.rows);
+						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					}
+				}
+				if (count == 1) {
+					if (cluster.ID == 'l') {
+						int x = calculate_x(p, k2, outimg.rows);
+						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					}
+					if (cluster.ID == 'c') {
+						int x = calculate_x(p, k6, outimg.rows);
+						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					}
+					if (cluster.ID == 'r') {
+						int x = calculate_x(p, k4, outimg.rows);
+						line(outimg, p, Point(x, outimg.rows), Scalar(255, 255, 255), 1, 8, 0);
+					}
+				}
+				count++;
+			}
+		}
+	}
 
 	return outimg;
 }
@@ -1210,6 +1225,19 @@ vector<CImgPro::Cluster> CImgPro::firstClusterBaseOnDbscan(Cluster& points, floa
 		}
 	}
 
+	for (Cluster& cluster : cluster_points) {
+		if (!cluster.points.empty()) {
+			// calculate centroid
+			for (Point& point : cluster.points) {
+				cluster.averageX += point.x;
+				cluster.averageY += point.y;
+			}
+			cluster.averageX /= cluster.points.size();
+			cluster.averageY /= cluster.points.size();
+
+		}
+	}
+
 	return cluster_points; 
 }
 
@@ -1219,153 +1247,102 @@ vector<CImgPro::Cluster> CImgPro::secondClusterBaseOnCenterX(vector<Cluster>& cl
 	vector<float> centroidDistances;
 	vector<float> centroidXCoords;
 	for (Cluster& cluster : cluster_points) {
-		if (!cluster.points.empty()) {
-			float meanX = 0, meanY = 0;
-			// 计算聚类的质心
-			for (Point& point : cluster.points) {
-				meanX += point.x;
-				meanY += point.y;
-			}
-			meanX /= cluster.points.size();
-			meanY /= cluster.points.size();
+		//if (!cluster.points.empty()) {
+		//	float meanX = 0, meanY = 0;
+		//	// 计算聚类的质心
+		//	for (Point& point : cluster.points) {
+		//		meanX += point.x;
+		//		meanY += point.y;
+		//	}
+		//	meanX /= cluster.points.size();
+		//	meanY /= cluster.points.size();
 
-			// 计算质心到图像中线的距离
-			float distance = abs(meanX - imgCenterX);
-			centroidDistances.push_back(distance);
-			centroidXCoords.push_back(meanX);
-		}
+		//	// 计算质心到图像中线的距离
+		//	float distance = abs(meanX - imgCenterX);
+		//	centroidDistances.push_back(distance);
+		//	centroidXCoords.push_back(meanX);
+		//}
+
+		float distance = abs(cluster.averageX - imgCenterX);
+		centroidDistances.push_back(distance);
+		centroidXCoords.push_back(cluster.averageX);
 	}
 
 	// 计算距离的均值
 	float averageDistance = accumulate(centroidDistances.begin(), centroidDistances.end(), 0.0f) / centroidDistances.size();
 
-	// 根据均值和质心的x坐标，将聚类归为左边、右边或中间
+	// 根据均值，将聚类归为中间
 	vector<Cluster> final_cluster_points;
-	vector<Cluster> right, left, center;
+	vector<Cluster> center;
 	for (int i = 0; i < cluster_points.size(); ++i) {
-		//if (centroidDistances[i] > cof * averageDistance) {
-		//	if (centroidXCoords[i] > imgCenterX) {		//右边
-		//		cluster_points[i].ID = 'r';
-		//		right.push_back(cluster_points[i]);
-		//	}
-		//	else {
-		//		cluster_points[i].ID = 'l';
-		//		left.push_back(cluster_points[i]);
-		//	}
-		//}
-		//else {
-		//	cluster_points[i].ID = 'c';
-		//	center.push_back(cluster_points[i]);//中间
-		//}
-
 		if (centroidDistances[i] <= cof * averageDistance) {
 			cluster_points[i].ID = 'c';
 			center.push_back(cluster_points[i]);
 		}
 	}
 
-	Cluster temp;
+	//Cluster temp;
 
-	// lfet side
-	/* 
-	while (!left.empty())
-	{
-		Point minPoint = min(left[0].points);
-		Point maxPoint = max(left[0].points);
-
-		temp.CategID.push_back(minPoint);
-		temp.CategID.push_back(maxPoint);
-
-		temp.points.insert(temp.points.end(), left[0].points.begin(), left[0].points.end());
-		//移动位置并删除该聚类
-		rotate(left.begin(), left.begin() + 1, left.end());
-		left.pop_back();
-		temp.ID = 'l';
-
-		for (auto it = left.begin(); it != left.end();) {
-			Cluster& cluster = *it;
-			bool flag = isClusterPassed(cluster, minPoint, maxPoint, cluster.ID);
-			if (flag) {
-				temp.points.insert(temp.points.end(), cluster.points.begin(), cluster.points.end());
-				it = left.erase(it); // 删除经过的聚类并更新迭代器
-			}
-			else {
-				++it; // 继续遍历下一个聚类
-			}
-		}
-
-		final_cluster_points.push_back(temp);
-		temp.points.clear();
-		temp.CategID.clear();
-	}
-	*/
-
-	//while (!center.empty())
+	//// lfet side
+	///* 
+	//while (!left.empty())
 	//{
-		/*Point minPoint = min(center[0].points);
-		Point maxPoint = max(center[0].points);*/
-		Point minPoint = Point(imgCenterX - 0.07 * imgCols, 0);
-		Point maxPoint = Point(imgCenterX + 0.07 * imgCols, 0);
+	//	Point minPoint = min(left[0].points);
+	//	Point maxPoint = max(left[0].points);
 
-		temp.CategID.push_back(minPoint);
-		temp.CategID.push_back(maxPoint);
+	//	temp.CategID.push_back(minPoint);
+	//	temp.CategID.push_back(maxPoint);
 
-		/*temp.points.insert(temp.points.end(), center[0].points.begin(), center[0].points.end());
-		rotate(center.begin(), center.begin() + 1, center.end());
-		center.pop_back();*/
-		temp.ID = 'c';
+	//	temp.points.insert(temp.points.end(), left[0].points.begin(), left[0].points.end());
+	//	//移动位置并删除该聚类
+	//	rotate(left.begin(), left.begin() + 1, left.end());
+	//	left.pop_back();
+	//	temp.ID = 'l';
 
-		for (auto it = center.begin(); it != center.end();) {
-			Cluster& cluster = *it;
-			bool flag = isClusterPassed(cluster, minPoint, maxPoint, cluster.ID);
-			if (flag) {
-				temp.points.insert(temp.points.end(), cluster.points.begin(), cluster.points.end());
-				it = center.erase(it); // 删除经过的聚类并更新迭代器
-			}
-			else {
-				++it; // 继续遍历下一个聚类
-			}
-		}
+	//	for (auto it = left.begin(); it != left.end();) {
+	//		Cluster& cluster = *it;
+	//		bool flag = isClusterPassed(cluster, minPoint, maxPoint, cluster.ID);
+	//		if (flag) {
+	//			temp.points.insert(temp.points.end(), cluster.points.begin(), cluster.points.end());
+	//			it = left.erase(it); // 删除经过的聚类并更新迭代器
+	//		}
+	//		else {
+	//			++it; // 继续遍历下一个聚类
+	//		}
+	//	}
 
-		final_cluster_points.push_back(temp);
-		temp.points.clear();
-		temp.CategID.clear();
+	//	final_cluster_points.push_back(temp);
+	//	temp.points.clear();
+	//	temp.CategID.clear();
 	//}
+	//*/
 
-	//right side
-	/*
-	while (!right.empty())
-	{
-		Point minPoint = min(right[0].points);
-		Point maxPoint = max(right[0].points);
 
-		temp.CategID.push_back(minPoint);
-		temp.CategID.push_back(maxPoint);
+	//	Point minPoint = Point(imgCenterX - 0.07 * imgCols, 0);
+	//	Point maxPoint = Point(imgCenterX + 0.07 * imgCols, 0);
 
-		temp.points.insert(temp.points.end(), right[0].points.begin(), right[0].points.end());
-		rotate(right.begin(), right.begin() + 1, right.end());
-		right.pop_back();
-		temp.ID = 'r';
+	//	temp.CategID.push_back(minPoint);
+	//	temp.CategID.push_back(maxPoint);
+	//	temp.ID = 'c';
 
-		for (auto it = right.begin(); it != right.end();) {
-			Cluster& cluster = *it;
-			bool flag = isClusterPassed(cluster, minPoint, maxPoint, cluster.ID);
-			if (flag) {
-				temp.points.insert(temp.points.end(), cluster.points.begin(), cluster.points.end());
-				it = right.erase(it); // 删除经过的聚类并更新迭代器
-			}
-			else {
-				++it; // 继续遍历下一个聚类
-			}
-		}
+	//	for (auto it = center.begin(); it != center.end();) {
+	//		Cluster& cluster = *it;
+	//		bool flag = isClusterPassed(cluster, minPoint, maxPoint, cluster.ID);
+	//		if (flag) {
+	//			temp.points.insert(temp.points.end(), cluster.points.begin(), cluster.points.end());
+	//			it = center.erase(it); // 删除经过的聚类并更新迭代器
+	//		}
+	//		else {
+	//			++it; // 继续遍历下一个聚类
+	//		}
+	//	}
 
-		final_cluster_points.push_back(temp);
-		temp.points.clear();
-		temp.CategID.clear();
-	}
-	*/
+	//	final_cluster_points.push_back(temp);
+	//	temp.points.clear();
+	//	temp.CategID.clear();
 
-	return final_cluster_points;
+	return center;
+	//return final_cluster_points;
 }
 
 vector<int> CImgPro::regionQuery(Cluster& points, Point& point, double epsilon)
@@ -1600,7 +1577,7 @@ void CImgPro::SaveImg(String filename, Mat& img)
 	std::string filename_without_extension = basename.substr(0, basename.find_last_of("."));
 
 	// 构造要保存的文件名及路径
-	std::string outfilename = "D:\\ProcessedImg2.0\\" + filename_without_extension + ".jpg";
+	std::string outfilename = "D:\\ProcessedImg3.0\\" + filename_without_extension + "_Baseline" + ".jpg";
 
 	// 保存处理后的图像
 	cv::imwrite(outfilename, img);
