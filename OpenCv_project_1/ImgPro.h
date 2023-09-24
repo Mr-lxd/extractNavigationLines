@@ -5,7 +5,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/opencv.hpp>
 #include <math.h>
-//Install the Eigen library using vcpkg, and make sure it's for the x64 architecture.
+//Install the Eigen library using vcpkg, and make sure it's for the x64 architecture
 #include <Eigen/Dense>
 
 
@@ -31,13 +31,12 @@ class CImgPro
 			char state;
 		}Cluster;
 
-		double thresholdingSigmoid(double NonZeroPixelRatio, double k, double x);
+		double thresholdingSigmoid(double NonZeroPixelRatio, double k, double centerx);
 		Mat MedianBlur(Mat srcimg, int kernel_size);
 		Mat verticalProjection(Mat& img, const vector<Cluster>& clusters, double cof);
 		Mat My_SUSAN(Mat& src, int thresh, int k, Cluster& points);		
 		Mat MorphologicalOperation(Mat src, int kernel_size, int cycle_num_e, int cycle_num_d);
 		Mat ClusterPointsDrawing(Mat& src, vector<Cluster>& points);
-		Mat projectedImg(Mat& img, vector<Cluster>& clusters, float slope);
 		Mat skeletonization(Mat& img, Cluster& points);
 		pair<Mat, int> verticalProjectionForCenterX(const vector<int>& histogram);
 		pair<Mat, vector<int>> EightConnectivity(Mat& img, float cof);
@@ -47,7 +46,7 @@ class CImgPro
 		vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX, float cof);
 		vector<Cluster> Cluster_Nearest(Mat& featureimage);
 		vector<Cluster> Bisecting_Kmeans(Cluster& points, int k, float perCof);
-		void processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, int windowWidth, int windowHeight);
+		void processImageWithWindow(Mat& srcimg, Mat& outimg, Cluster& points, int windowWidth, int windowHeight, int flag);
 		void retainMainStem(vector<Cluster>& clusters);
 		void NormalizedExG(Mat& srcimg, Mat& outimg);		
 		void RANSAC(Cluster& points, float thresh, Mat& outimg);
@@ -58,7 +57,7 @@ class CImgPro
 
 	private:
 
-		float k1, k2, k3, k4, k5, k6;		//分别为左中右聚类的最小和最大点对应的范围直线的斜率
+		float k1, k2, k3, k4, k5, k6;		//The slopes of the lines corresponding to the minimum and maximum points for the left, center, and right clusters
 		float x_max, x_min;		//the x-coordinate of the intersection between the histogram and the horizontal line
 
 		float euclidean_distance(Point a, Point b);
@@ -74,7 +73,6 @@ class CImgPro
 		void expandCluster(Cluster& points, vector<int>& clusterIDs, int currentClusterID,
 			int pointIndex, double epsilon, int minPts, const vector<int>& neighbours);
 
-		//	聚类参数
 		vector<Cluster> BaseCluster(Mat featureimage, int beginHeight, int areaHeight, int areaWidth);
 
 };

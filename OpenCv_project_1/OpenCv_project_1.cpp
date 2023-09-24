@@ -7,7 +7,10 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_103112.jpg";
+	//string filename = "D:\\横州甘蔗地\\IMG_20230518_103112.jpg";//image path
+	//string filename = "E:\\泛化能力验证数据集\\20230815中秋玉米苗\\IMG_20230815_095559.jpg";
+	//string filename = "E:\\泛化能力验证数据集\\20230803东高玉米苗\\IMG_20230813_175945.jpg";
+	string filename = "E:\\泛化能力验证数据集\\20230813东高水稻苗\\IMG_20230813_181312.jpg";
 	Mat inputImage = imread(filename);
 	CImgPro::imgCols = inputImage.cols;
 	CImgPro::imgRows = inputImage.rows;
@@ -24,7 +27,8 @@ int main()
 	Mat MedianBlurImg = myImgPro.MedianBlur(ExGImage, MedianBlur_kernel_size);
 
 	auto result_OTSU = myImgPro.OTSU(MedianBlurImg);
-	Mat OtsuImg = result_OTSU.first;
+	Mat temp = result_OTSU.first;
+	Mat OtsuImg = temp.clone();
 	float NonZeroPixelRatio = result_OTSU.second;
 
 
@@ -69,54 +73,20 @@ int main()
 	Mat ConnectImg = result_EC.first;
 
 
+
 	//Calculate the x-coordinate of the center row baseline within the crop based on the histogram analysis
 	auto result_VPFCX = myImgPro.verticalProjectionForCenterX(result_EC.second);
 	Mat firstHistorImg = result_VPFCX.first;
-	int centerX = result_VPFCX.second;
+	int centerX = result_VPFCX.second;//baseline
 
-
-	///*
-	//	Skeletonization process is characterized by a lengthy computational time
-	//*/
-	////CImgPro::Cluster skeleton_points;
-	////Mat skeletonImg = myImgPro.skeletonization(ConnectImg, skeleton_points);
-	//
-	///*
-	//int thresh = 10, k = 18;		//k为响应阈值的比例系数
-	//CImgPro::Cluster susan_points;
-	//Mat TempImg = myImgPro.My_SUSAN(ConnectImg, thresh, k, susan_points);
-	//Mat SusanImg = TempImg.clone();
-	//*/
 
 	/*
 		Using windows to extract features points, reducing data size
 	*/
 	CImgPro::Cluster reduce_points;
 	Mat featureImg(ConnectImg.size(), CV_8UC1, Scalar(0));
-	myImgPro.processImageWithWindow(ConnectImg, featureImg, reduce_points, 8, 8);
+	myImgPro.processImageWithWindow(ConnectImg, featureImg, reduce_points, 8, 8, 1);
 
-
-	////高斯混合模型的协方差矩阵类型(对应不同的数据形状)，球状、对角、完全、等方位
-	////ml::EM::Types covarianceType = ml::EM::Types::COV_MAT_GENERIC; //这里使用完全协方差矩阵，适用于数据中存在明显的相关性的情况
-	////vector<CImgPro::Cluster> cluster_points = myImgPro.Gaussian_Mixture_Model(points, 3, covarianceType);
-	////Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, cluster_points);
-	//
-
-	///*
-	//	参数perCof很重要，需要调整以划分出指定的簇
-	//*/
-	////float perCof = 0.8;
-	////int cluNum = 3;
-	////vector<CImgPro::Cluster> points = myImgPro.Bisecting_Kmeans(susan_points, cluNum, perCof);
-	////Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, points);
-	//
-
-	///*
-	//	averageD是聚类算法中的重要参数，决定了点与点间是否同属一类，太小会导致同属一类的点聚成两类，太大会聚到无关点
-	//*/
-	////int areaHeight = 128, areaWidth = 205, areaDegree = 128, areaExtent = 205;		//扫描窗口
-	////vector<CImgPro::Cluster> points = myImgPro.Cluster_for_Ransac(MorphImg, areaHeight, areaWidth, areaDegree, areaExtent);
-	////Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, points);
 
 
 	/*
@@ -132,70 +102,95 @@ int main()
 	} while (second_cluster_points.size() == 0);
 	Mat F_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, first_cluster_points);
 	Mat S_ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
-	//myImgPro.SaveImg(filename, S_ClusterImg);
 
 
-
-	////Thresholding segmentation of images
-	//Mat HistogramImg;
-	///*
-	//if (CImgPro::NonZeroPixelRatio <= 0.1) {
-	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
-	//}
-	//if (CImgPro::NonZeroPixelRatio < 0.2 && CImgPro::NonZeroPixelRatio > 0.1) {
-	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
-	//}
-	//if (CImgPro::NonZeroPixelRatio < 0.3 && CImgPro::NonZeroPixelRatio >= 0.2) {
-	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.5);
-	//}
-	//if (CImgPro::NonZeroPixelRatio >= 0.3) {
-	//	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.4);
-	//}
-	//*/
-	//double tsd = myImgPro.thresholdingSigmoid(NonZeroPixelRatio, -8.67, 0.354);//0.1-0.9  0.4-0.4
-	////double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -4.977, 0.3185);//0.04-0.8  0.4-0.4
-	//HistogramImg = myImgPro.verticalProjection(S_ClusterImg, second_cluster_points, tsd);
-	//myImgPro.retainMainStem(second_cluster_points);
-	//Mat MainStemImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
-
-
-	///*
-	//	Second extraction
-	//*/
-	//CImgPro::Cluster final_points;
-	//Mat ExtractImg(MainStemImg.size(), CV_8UC1, Scalar(0));
-	//myImgPro.processImageWithWindow(MainStemImg, ExtractImg, final_points, 16, 32);
+	//Thresholding segmentation of images
+	Mat HistogramImg;
+	/*
+	if (CImgPro::NonZeroPixelRatio <= 0.1) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
+	}
+	if (CImgPro::NonZeroPixelRatio < 0.2 && CImgPro::NonZeroPixelRatio > 0.1) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.8);
+	}
+	if (CImgPro::NonZeroPixelRatio < 0.3 && CImgPro::NonZeroPixelRatio >= 0.2) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.5);
+	}
+	if (CImgPro::NonZeroPixelRatio >= 0.3) {
+		HistogramImg = myImgPro.verticalProjection(S_ClusterImg, maxPts, 0.4);
+	}
+	*/
+	double tsd = myImgPro.thresholdingSigmoid(NonZeroPixelRatio, -8.67, 0.354);//0.1-0.9  0.4-0.4
+	//double tsd = myImgPro.thresholdingSigmoid(CImgPro::NonZeroPixelRatio, -4.977, 0.3185);//0.04-0.8  0.4-0.4
+	HistogramImg = myImgPro.verticalProjection(S_ClusterImg, second_cluster_points, tsd);
+	myImgPro.retainMainStem(second_cluster_points);
+	Mat MainStemImg = myImgPro.ClusterPointsDrawing(ExGImage, second_cluster_points);
 
 
-	///*
-	//	fit line
-	//*/
-	//Mat RansacImg = inputImage.clone();
-	////Mat RansacImg(ConnectImg.size(), CV_8UC3, Scalar(0, 0, 0));
-	//if (NonZeroPixelRatio >= 0.1) {
-	//	myImgPro.RANSAC(final_points, 0.155, RansacImg);
-	//}
-	//else
-	//{
-	//	myImgPro.RANSAC(final_points, 0.13, RansacImg);
-	//}
+	/*
+		Second extraction
+	*/
+	CImgPro::Cluster final_points;
+	Mat ExtractImg(MainStemImg.size(), CV_8UC3, Scalar(255,255,255));
+	myImgPro.processImageWithWindow(MainStemImg, ExtractImg, final_points, 16, 32, 2);
 
 
-	////Mat ProjectedImg = myImgPro.projectedImg(maxPtsImg, maxPts_temp, CImgPro::firstSlope);
+	/*
+		fit line
+	*/
+	Mat RansacImg = inputImage.clone();
+	//Mat RansacImg(ConnectImg.size(), CV_8UC3, Scalar(0, 0, 0));
+	if (NonZeroPixelRatio >= 0.1) {
+		myImgPro.RANSAC(final_points, 0.155, RansacImg);
+	}
+	else
+	{
+		myImgPro.RANSAC(final_points, 0.13, RansacImg);
+	}
+	myImgPro.SaveImg(filename, RansacImg);
 
-	///*vector<CImgPro::Cluster> F_Pts;
-	//F_Pts.push_back(final_points);
-	//myImgPro.Hough_Line(F_Pts, RansacImg);*/
-
-
-	//myImgPro.SaveImg(filename, RansacImg);
 
 
 	/********************************************************************************************************************/
 
-	//namedWindow("feature_Image", WINDOW_NORMAL);
-	//moveWindow("feature_Image", 0, 0);		
-	//imshow("feature_Image", featureImg);
+	/*    Irrelevant code, kept for future research convenience.   */
+
+	/*
+		Skeletonization process is characterized by a lengthy computational time
+	*/
+	//CImgPro::Cluster skeleton_points;
+	//Mat skeletonImg = myImgPro.skeletonization(ConnectImg, skeleton_points);
+	/*
+	int thresh = 10, k = 18;
+	CImgPro::Cluster susan_points;
+	Mat TempImg = myImgPro.My_SUSAN(ConnectImg, thresh, k, susan_points);
+	Mat SusanImg = TempImg.clone();
+	*/
+
+	/*
+	  The covariance matrix types in a Gaussian Mixture Model (GMM) that correspond to different data shapes
+	  Here, using a full covariance matrix, which is suitable for situations where there is clear correlation present in the data
+	*/
+	//ml::EM::Types covarianceType = ml::EM::Types::COV_MAT_GENERIC; 
+	//vector<CImgPro::Cluster> cluster_points = myImgPro.Gaussian_Mixture_Model(points, 3, covarianceType);
+	//Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, cluster_points);
+
+
+	//float perCof = 0.8;
+	//int cluNum = 3;
+	//vector<CImgPro::Cluster> points = myImgPro.Bisecting_Kmeans(susan_points, cluNum, perCof);
+	//Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, points);
+
+
+	//int areaHeight = 128, areaWidth = 205, areaDegree = 128, areaExtent = 205;		
+	//vector<CImgPro::Cluster> points = myImgPro.Cluster_for_Ransac(MorphImg, areaHeight, areaWidth, areaDegree, areaExtent);
+	//Mat ClusterImg = myImgPro.ClusterPointsDrawing(ExGImage, points);
+
+	/********************************************************************************************************************/
+
+	namedWindow("feature_Image", WINDOW_NORMAL);
+	moveWindow("feature_Image", 0, 0);		
+	imshow("feature_Image", featureImg);
 
 	namedWindow("ExG_Image", WINDOW_NORMAL);
 	moveWindow("ExG_Image", 0, 10);		
@@ -207,22 +202,22 @@ int main()
 
 	namedWindow("OTSU_Img", WINDOW_NORMAL);
 	moveWindow("OTSU_Img", 500, 500);
-	imshow("OTSU_Img",OtsuImg);
+	imshow("OTSU_Img",temp);
 
-	/*if (flag == 1) {
+	if (flag == 1) {
 		namedWindow("Morph_Img", WINDOW_NORMAL);
 		moveWindow("Morph_Img", 0, 1000);
 		imshow("Morph_Img", MorphImg);
-	}*/
+	}
 	
 
-	//namedWindow("Connect_Img", WINDOW_NORMAL);
-	//moveWindow("Connect_Img", 0, 550);
-	//imshow("Connect_Img", ConnectImg);
+	namedWindow("Connect_Img", WINDOW_NORMAL);
+	moveWindow("Connect_Img", 0, 550);
+	imshow("Connect_Img", ConnectImg);
 
-	//namedWindow("firstHistor_Img", WINDOW_NORMAL);
-	//moveWindow("firstHistor_Img", 0, 300);
-	//imshow("firstHistor_Img", firstHistorImg);
+	namedWindow("firstHistor_Img", WINDOW_NORMAL);
+	moveWindow("firstHistor_Img", 0, 300);
+	imshow("firstHistor_Img", firstHistorImg);
 
 	namedWindow("F_Cluster_Img", WINDOW_NORMAL);
 	moveWindow("F_Cluster_Img", 700, 0);
@@ -232,7 +227,7 @@ int main()
 	moveWindow("S_Cluster_Img", 800, 0);
 	imshow("S_Cluster_Img", S_ClusterImg);
 
-	/*namedWindow("Histogram_Img", WINDOW_NORMAL);
+	namedWindow("Histogram_Img", WINDOW_NORMAL);
 	moveWindow("Histogram_Img", 800, 400);
 	imshow("Histogram_Img", HistogramImg);
 
@@ -242,19 +237,19 @@ int main()
 
 	namedWindow("Extract_Img", WINDOW_NORMAL);
 	moveWindow("Extract_Img", 900, 200);
-	imshow("Extract_Img", ExtractImg);*/
+	imshow("Extract_Img", ExtractImg);
 
 	//namedWindow("Skeleton_Img", WINDOW_NORMAL);
 	//moveWindow("Skeleton_Img", 500, 700);
 	//imshow("Skeleton_Img", skeletonImg);
 
-	/*namedWindow("Ransac_Img", WINDOW_NORMAL);
+	namedWindow("Ransac_Img", WINDOW_NORMAL);
 	moveWindow("Ransac_Img", 500, 400);
-	imshow("Ransac_Img", RansacImg);*/
+	imshow("Ransac_Img", RansacImg);
 
-	/*namedWindow("Projected_Img", WINDOW_NORMAL);
-	moveWindow("Projected_Img", 400, 400);
-	imshow("Projected_Img", ProjectedImg);*/
+	//namedWindow("Projected_Img", WINDOW_NORMAL);
+	//moveWindow("Projected_Img", 400, 400);
+	//imshow("Projected_Img", ProjectedImg);
 
 	waitKey(0);
 
