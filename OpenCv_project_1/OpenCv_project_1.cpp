@@ -7,10 +7,10 @@ using namespace cv;
 int main()
 {
 
-	//string filename = "D:\\横州甘蔗地\\IMG_20230518_103112.jpg";//image path
+	string filename = "D:\\横州甘蔗地\\IMG_20230518_112045.jpg";//image path
 	//string filename = "E:\\泛化能力验证数据集\\20230815中秋玉米苗\\IMG_20230815_095559.jpg";
 	//string filename = "E:\\泛化能力验证数据集\\20230803东高玉米苗\\IMG_20230813_175945.jpg";
-	string filename = "E:\\泛化能力验证数据集\\20230813东高水稻苗\\IMG_20230813_181312.jpg";
+	//string filename = "E:\\泛化能力验证数据集\\20230813东高水稻苗\\IMG_20230813_181312.jpg";
 	Mat inputImage = imread(filename);
 	CImgPro::imgCols = inputImage.cols;
 	CImgPro::imgRows = inputImage.rows;
@@ -25,6 +25,7 @@ int main()
 	*/
 	int MedianBlur_kernel_size = 5;		
 	Mat MedianBlurImg = myImgPro.MedianBlur(ExGImage, MedianBlur_kernel_size);
+	myImgPro.SaveImg(filename, MedianBlurImg);
 
 	auto result_OTSU = myImgPro.OTSU(MedianBlurImg);
 	Mat temp = result_OTSU.first;
@@ -37,27 +38,33 @@ int main()
 	*/
 	Mat MorphImg;
 	int flag = 0;
-	if (NonZeroPixelRatio > 0.06 && NonZeroPixelRatio <= 0.1) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 2, 1);
-		flag = 1;
-	}
-	if (NonZeroPixelRatio > 0.1 && NonZeroPixelRatio < 0.2) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5, 3);
-		flag = 1;
-	}
-	if (NonZeroPixelRatio >= 0.2 && NonZeroPixelRatio < 0.3) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 9, 4);
-		flag = 1;
-	}
-	if (NonZeroPixelRatio >= 0.3 && NonZeroPixelRatio < 0.4) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 11, 5);
-		flag = 1;
-	}
-	if (NonZeroPixelRatio >= 0.4) {
-		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 14, 6);
-		flag = 1;
-	}
+	//if (NonZeroPixelRatio > 0.06 && NonZeroPixelRatio <= 0.1) {
+	//	MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 2, 1);
+	//	flag = 1;
+	//}
+	//if (NonZeroPixelRatio > 0.1 && NonZeroPixelRatio < 0.2) {
+	//	MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 5, 3);
+	//	flag = 1;
+	//}
+	//if (NonZeroPixelRatio >= 0.2 && NonZeroPixelRatio < 0.3) {
+	//	MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 9, 4);
+	//	flag = 1;
+	//}
+	//if (NonZeroPixelRatio >= 0.3 && NonZeroPixelRatio < 0.4) {
+	//	MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 11, 5);
+	//	flag = 1;
+	//}
+	//if (NonZeroPixelRatio >= 0.4) {
+	//	MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, 14, 6);
+	//	flag = 1;
+	//}
 
+	auto result_open = myImgPro.NZPR_to_Erosion_Dilation(NonZeroPixelRatio);
+	if (result_open.first && result_open.second) {
+		MorphImg = myImgPro.MorphologicalOperation(OtsuImg, 3, result_open.first, result_open.second);
+		flag = 1;
+	}
+	
 
 	/*
 		The eight-connected algorithm can be employed to further eliminate noise and minor connected components
@@ -147,7 +154,7 @@ int main()
 	{
 		myImgPro.RANSAC(final_points, 0.13, RansacImg);
 	}
-	myImgPro.SaveImg(filename, RansacImg);
+	//myImgPro.SaveImg(filename, RansacImg);
 
 
 
@@ -206,7 +213,7 @@ int main()
 
 	if (flag == 1) {
 		namedWindow("Morph_Img", WINDOW_NORMAL);
-		moveWindow("Morph_Img", 0, 1000);
+		moveWindow("Morph_Img", 0, 510);
 		imshow("Morph_Img", MorphImg);
 	}
 	

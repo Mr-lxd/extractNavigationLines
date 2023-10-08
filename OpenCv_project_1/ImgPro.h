@@ -41,6 +41,7 @@ class CImgPro
 		pair<Mat, int> verticalProjectionForCenterX(const vector<int>& histogram);
 		pair<Mat, vector<int>> EightConnectivity(Mat& img, float cof);
 		pair<Mat, float> OTSU(Mat src);
+		pair<int, int>NZPR_to_Erosion_Dilation(float NZPR);
 		vector<Cluster> Gaussian_Mixture_Model(Cluster& points, int numCluster, ml::EM::Types covarianceType);
 		vector<Cluster> firstClusterBaseOnDbscan(Cluster& points, float epsilon, int minPts);
 		vector<Cluster> secondClusterBaseOnCenterX(vector<Cluster>& cluster_points, int imgCenterX, float cof);

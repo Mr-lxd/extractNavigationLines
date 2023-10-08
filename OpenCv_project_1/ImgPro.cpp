@@ -193,6 +193,25 @@ Mat CImgPro::MedianBlur(Mat srcimg, int kernel_size)
 	return MedianBlurImg;
 }
 
+pair<int, int> CImgPro::NZPR_to_Erosion_Dilation(float NZPR)
+{
+	int Erosion = 0, Dilation = 0;
+
+	if (NZPR >= 0.06 && NZPR < 0.2) {
+		Erosion = round(16.75 * NZPR * NZPR + 25.81 * NZPR - 0.1);
+	}
+	else if (NZPR >= 0.2 && NZPR <= 0.5) {
+		Erosion = trunc(50 * NZPR * NZPR - 5 * NZPR + 8);
+	}
+	//else {
+	//	Erosion = -1;
+	//}
+
+	Dilation = floor(Erosion / 2.0); 
+
+	return{Erosion, Dilation};
+}
+
 pair<Mat, vector<int>> CImgPro::EightConnectivity(Mat& img, float cof)
 {
 	Mat labels; // Output labeled image
@@ -882,8 +901,8 @@ void CImgPro::SaveImg(String filename, Mat& img)
 	std::string filename_without_extension = basename.substr(0, basename.find_last_of("."));
 
 	// Construct the file name and path for saving
-	//std::string outfilename = "D:\\ProcessedImg3.0\\" + filename_without_extension + "_slidingWin" + ".jpg";
-	std::string outfilename = "D:\\水稻处理图像\\" + filename_without_extension + ".jpg";
+	std::string outfilename = "D:\\ProcessedImg3.0\\" + filename_without_extension + "_filter" + ".jpg";
+	//std::string outfilename = "D:\\水稻处理图像\\" + filename_without_extension + ".jpg";
 
 	// Save image
 	cv::imwrite(outfilename, img);
