@@ -54,6 +54,7 @@ class CImgPro
 		void SaveImg(String filename, Mat& img);
 		void leastSquaresFit_edit(Cluster& cluster, Mat& outimg);
 		void Hough_Line(vector<Cluster>& clusters, Mat& outimg);
+		void ShowImg(Mat& img, String name, int x, int y);
 
 
 	private:
@@ -73,7 +74,6 @@ class CImgPro
 		vector<int> regionQuery(Cluster& points, Point& point, double epsilon);
 		void expandCluster(Cluster& points, vector<int>& clusterIDs, int currentClusterID,
 			int pointIndex, double epsilon, int minPts, const vector<int>& neighbours);
-
 		vector<Cluster> BaseCluster(Mat featureimage, int beginHeight, int areaHeight, int areaWidth);
 
 };

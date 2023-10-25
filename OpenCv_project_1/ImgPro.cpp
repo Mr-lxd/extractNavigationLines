@@ -660,7 +660,7 @@ vector<CImgPro::Cluster> CImgPro::firstClusterBaseOnDbscan(Cluster& points, floa
 			Point& p = points.points[i];
 			vector<int> neighbours = regionQuery(points, p, epsilon);
 			if (neighbours.size() >= minPts) { 
-				expandCluster(points, clusterIDs, currentClusterID, i, epsilon, minPts, neighbours); // 扩展聚类
+				expandCluster(points, clusterIDs, currentClusterID, i, epsilon, minPts, neighbours);
 				currentClusterID++; 				
 			}
 		}
@@ -672,7 +672,7 @@ vector<CImgPro::Cluster> CImgPro::firstClusterBaseOnDbscan(Cluster& points, floa
 	for (int i = 0; i < points.points.size(); ++i) {
 		int clusterID = clusterIDs[i]; // current point ID
 		if (clusterID >= 0) { // remove noise（ID=-1）
-			cluster_points[clusterID].points.push_back(Point(points.points[i].x, points.points[i].y)); // 将当前点添加到相应的聚类集合中
+			cluster_points[clusterID].points.push_back(Point(points.points[i].x, points.points[i].y));
 		}
 	}
 
@@ -886,6 +886,13 @@ void CImgPro::leastSquaresFit_edit(Cluster& cluster, Mat& outimg)
 		
 		float firstSlope = (float)-a / b;
 	//}
+}
+
+void CImgPro::ShowImg(Mat& img, String name, int x, int y)
+{
+	namedWindow(name, WINDOW_NORMAL);
+	moveWindow(name, x, y);
+	imshow(name, img);
 }
 
 void CImgPro::SaveImg(String filename, Mat& img)

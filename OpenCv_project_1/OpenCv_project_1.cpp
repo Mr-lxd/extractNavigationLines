@@ -7,10 +7,10 @@ using namespace cv;
 int main()
 {
 
-	string filename = "D:\\横州甘蔗地\\IMG_20230518_112045.jpg";//image path
-	//string filename = "E:\\泛化能力验证数据集\\20230815中秋玉米苗\\IMG_20230815_095559.jpg";
-	//string filename = "E:\\泛化能力验证数据集\\20230803东高玉米苗\\IMG_20230813_175945.jpg";
-	//string filename = "E:\\泛化能力验证数据集\\20230813东高水稻苗\\IMG_20230813_181312.jpg";
+	//string filename = "D:\\横州甘蔗地\\IMG_20230518_112045.jpg";//image path
+	//string filename = "E:\\泛化能力验证数据集\\20230815中秋玉米苗\\IMG_20230815_095811.jpg";
+	//string filename = "E:\\泛化能力验证数据集\\20230803东高玉米苗\\IMG_20230813_180115.jpg";
+	string filename = "E:\\泛化能力验证数据集\\20230813东高水稻苗\\IMG_20230813_181840.jpg";
 	Mat inputImage = imread(filename);
 	CImgPro::imgCols = inputImage.cols;
 	CImgPro::imgRows = inputImage.rows;
@@ -195,68 +195,27 @@ int main()
 
 	/********************************************************************************************************************/
 
-	namedWindow("feature_Image", WINDOW_NORMAL);
-	moveWindow("feature_Image", 0, 0);		
-	imshow("feature_Image", featureImg);
-
-	namedWindow("ExG_Image", WINDOW_NORMAL);
-	moveWindow("ExG_Image", 0, 10);		
-	imshow("ExG_Image", ExGImage);
-
-	namedWindow("MedianBlur_Img", WINDOW_NORMAL);
-	moveWindow("MedianBlur_Img",500, 0);		
-	imshow("MedianBlur_Img", MedianBlurImg);
-
-	namedWindow("OTSU_Img", WINDOW_NORMAL);
-	moveWindow("OTSU_Img", 500, 500);
-	imshow("OTSU_Img",temp);
-
+	myImgPro.ShowImg(featureImg, "feature_Image", 0, 0);
+	myImgPro.ShowImg(ExGImage, "ExG_Image", 0, 10);
+	myImgPro.ShowImg(MedianBlurImg, "MedianBlur_Img", 500, 0);
+	myImgPro.ShowImg(temp, "OTSU_Img", 500, 500);
 	if (flag == 1) {
-		namedWindow("Morph_Img", WINDOW_NORMAL);
-		moveWindow("Morph_Img", 0, 510);
-		imshow("Morph_Img", MorphImg);
+		myImgPro.ShowImg(MorphImg, "Morph_Img", 0, 510);
 	}
-	
+	myImgPro.ShowImg(ConnectImg, "Connect_Img", 0, 550);
+	myImgPro.ShowImg(firstHistorImg, "firstHistor_Img", 0, 300);
+	myImgPro.ShowImg(F_ClusterImg, "F_Cluster_Img", 700, 0);
+	myImgPro.ShowImg(S_ClusterImg, "S_Cluster_Img", 800, 0);
+	myImgPro.ShowImg(HistogramImg, "Histogram_Img", 800, 400);
+	myImgPro.ShowImg(MainStemImg, "MainStem_Img", 900, 0);
+	myImgPro.ShowImg(ExtractImg, "Extract_Img", 900, 200);
 
-	namedWindow("Connect_Img", WINDOW_NORMAL);
-	moveWindow("Connect_Img", 0, 550);
-	imshow("Connect_Img", ConnectImg);
-
-	namedWindow("firstHistor_Img", WINDOW_NORMAL);
-	moveWindow("firstHistor_Img", 0, 300);
-	imshow("firstHistor_Img", firstHistorImg);
-
-	namedWindow("F_Cluster_Img", WINDOW_NORMAL);
-	moveWindow("F_Cluster_Img", 700, 0);
-	imshow("F_Cluster_Img", F_ClusterImg);
-
-	namedWindow("S_Cluster_Img", WINDOW_NORMAL);
-	moveWindow("S_Cluster_Img", 800, 0);
-	imshow("S_Cluster_Img", S_ClusterImg);
-
-	namedWindow("Histogram_Img", WINDOW_NORMAL);
-	moveWindow("Histogram_Img", 800, 400);
-	imshow("Histogram_Img", HistogramImg);
-
-	namedWindow("MainStem_Img", WINDOW_NORMAL);
-	moveWindow("MainStem_Img", 900, 0);
-	imshow("MainStem_Img", MainStemImg);
-
-	namedWindow("Extract_Img", WINDOW_NORMAL);
-	moveWindow("Extract_Img", 900, 200);
-	imshow("Extract_Img", ExtractImg);
-
+	//myImgPro.ShowImg(skeletonImg, "Skeleton_Img", 500, 700);
 	//namedWindow("Skeleton_Img", WINDOW_NORMAL);
 	//moveWindow("Skeleton_Img", 500, 700);
 	//imshow("Skeleton_Img", skeletonImg);
 
-	namedWindow("Ransac_Img", WINDOW_NORMAL);
-	moveWindow("Ransac_Img", 500, 400);
-	imshow("Ransac_Img", RansacImg);
-
-	//namedWindow("Projected_Img", WINDOW_NORMAL);
-	//moveWindow("Projected_Img", 400, 400);
-	//imshow("Projected_Img", ProjectedImg);
+	myImgPro.ShowImg(RansacImg, "Ransac_Img", 500, 400);
 
 	waitKey(0);
 
